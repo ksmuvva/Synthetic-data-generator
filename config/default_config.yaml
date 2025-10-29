@@ -1,0 +1,202 @@
+# Synthetic Data Generator - Default Configuration
+
+# LLM Configuration
+llm:
+  # Primary provider: openai, anthropic, or local
+  provider: "openai"
+
+  # Model selection per provider
+  openai:
+    model: "gpt-4"
+    temperature: 0.7
+    max_tokens: 2000
+
+  anthropic:
+    model: "claude-3-5-sonnet-20241022"
+    temperature: 0.7
+    max_tokens: 4000
+
+  # API settings
+  timeout: 30
+  max_retries: 4
+  retry_delays: [2, 4, 8, 16]  # Exponential backoff in seconds
+
+  # Caching
+  enable_cache: true
+  cache_ttl: 3600  # 1 hour in seconds
+
+# Data Generation Configuration
+generation:
+  # Default settings
+  default_rows: 1000
+  max_rows: 1000000
+
+  # Quality settings
+  quality_level: "high"  # low, medium, high
+
+  # Data characteristics
+  null_percentage: 0.05  # 5% null values by default
+  duplicate_percentage: 0.0  # No duplicates by default
+  outlier_percentage: 0.02  # 2% outliers
+
+  # Field generation
+  use_semantic_analysis: true
+  infer_relationships: true
+  maintain_referential_integrity: true
+
+  # Performance
+  batch_size: 10000
+  parallel_generation: true
+  max_workers: 4
+
+# Format Configuration
+formats:
+  # CSV settings
+  csv:
+    delimiter: ","
+    quote_char: "\""
+    encoding: "utf-8"
+    include_header: true
+
+  # JSON settings
+  json:
+    indent: 2
+    ensure_ascii: false
+
+  # Excel settings
+  excel:
+    sheet_name: "Data"
+    include_index: false
+
+  # Parquet settings
+  parquet:
+    compression: "snappy"
+    engine: "pyarrow"
+
+  # XML settings
+  xml:
+    root_tag: "data"
+    row_tag: "record"
+    encoding: "utf-8"
+
+  # PDF settings
+  pdf:
+    page_size: "A4"
+    orientation: "portrait"
+    font_size: 10
+
+  # Word settings
+  word:
+    style: "Normal"
+    font: "Arial"
+    font_size: 11
+
+# Storage Configuration
+storage:
+  # Local storage
+  default_output_dir: "./output"
+  create_subdirs: true
+  timestamp_files: true
+
+  # Session management
+  session_dir: "~/.synth-agent"
+  session_db: "sessions.db"
+  max_sessions: 100
+
+  # Cloud storage
+  cloud:
+    enabled: false
+    provider: "s3"  # s3, gcs, azure
+    bucket: ""
+    prefix: "synth-agent/"
+
+  # Chunking for large files
+  enable_chunking: true
+  chunk_size_mb: 100
+
+# Conversation Configuration
+conversation:
+  # Context management
+  max_context_turns: 20
+  context_window: 8000
+
+  # Validation
+  validate_before_generation: true
+  require_confirmation: true
+
+  # Interaction
+  show_progress: true
+  verbose_mode: false
+
+# Analysis Configuration
+analysis:
+  # Pattern detection
+  min_sample_size: 10
+  confidence_threshold: 0.8
+
+  # Statistical analysis
+  detect_distributions: true
+  infer_constraints: true
+  detect_relationships: true
+
+  # Ambiguity detection
+  ambiguity_threshold: 0.6
+  max_clarification_questions: 5
+
+# Logging Configuration
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+
+  # Format: json, text
+  format: "json"
+
+  # Output
+  console_output: true
+  file_output: true
+  log_dir: "~/.synth-agent/logs"
+
+  # Rotation
+  max_file_size_mb: 10
+  max_files: 5
+
+  # Content
+  log_llm_interactions: true
+  log_api_calls: false
+  mask_sensitive_data: true
+
+# Security Configuration
+security:
+  # Privacy
+  send_pattern_data_to_llm: false
+  anonymize_before_llm: true
+  local_only_mode: false
+
+  # Validation
+  validate_file_paths: true
+  max_file_size_mb: 500
+  allowed_file_extensions:
+    - .csv
+    - .json
+    - .xlsx
+    - .xml
+    - .parquet
+    - .txt
+
+  # API keys (should be set via environment variables)
+  require_api_key: true
+
+# UI Configuration
+ui:
+  # Rich terminal output
+  use_colors: true
+  show_spinner: true
+  show_progress_bar: true
+
+  # Table display
+  max_table_rows: 20
+  max_column_width: 50
+
+  # Help
+  show_hints: true
+  show_examples: true
