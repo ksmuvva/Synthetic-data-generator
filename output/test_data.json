@@ -1,0 +1,82 @@
+[
+  {
+    "id":"e3e70682-c209-4cac-a29f-6fbed82c07cd",
+    "name":"Nicholas Nolan",
+    "email":"udavis@example.net",
+    "age":51.0,
+    "city":"Rileymouth",
+    "phone":"+1-391-961-5109x032"
+  },
+  {
+    "id":"f728b4fa-4248-4e3a-8a5d-2f346baa9455",
+    "name":"Kaitlyn Garcia",
+    "email":"jrodriguez@example.com",
+    "age":69.0,
+    "city":"Kellerstad",
+    "phone":"500.386.9141"
+  },
+  {
+    "id":"eb1167b3-67a9-4378-bc65-c1e582e2e662",
+    "name":"Levi Durham",
+    "email":"kelleylisa@example.net",
+    "age":33.0,
+    "city":"West Chloefort",
+    "phone":"+1-645-762-0870x9163"
+  },
+  {
+    "id":"f7c1bd87-4da5-4709-9471-3d60c8a70639",
+    "name":"Karen Grimes",
+    "email":"tamaramorrison@example.net",
+    "age":72.0,
+    "city":"Meganbury",
+    "phone":"001-979-423-0225x8419"
+  },
+  {
+    "id":"e443df78-9558-467f-9ba9-1faf7a024204",
+    "name":"Robert Dunn",
+    "email":"sean96@example.com",
+    "age":null,
+    "city":"Lake Josephbury",
+    "phone":"4762984564"
+  },
+  {
+    "id":"23a7711a-8133-4876-b7eb-dcd9e87a1613",
+    "name":"Nathan Ross",
+    "email":"kellylopez@example.org",
+    "age":75.0,
+    "city":"Lauramouth",
+    "phone":"715.408.4237x594"
+  },
+  {
+    "id":"1846d424-c17c-4279-a3c6-612f48268673",
+    "name":null,
+    "email":"salazardiane@example.com",
+    "age":61.0,
+    "city":"Cabreraville",
+    "phone":"001-946-861-0935x233"
+  },
+  {
+    "id":"fcbd04c3-4021-4ef7-8ca5-a5a19e4d6e3c",
+    "name":"Sean Sanchez MD",
+    "email":"daviskatherine@example.org",
+    "age":55.0,
+    "city":"Port Heidi",
+    "phone":"001-496-906-9602x714"
+  },
+  {
+    "id":"b4862b21-fb97-4435-8856-1712e8e5216a",
+    "name":"Cheryl Bradley",
+    "email":"kirbyrachael@example.net",
+    "age":70.0,
+    "city":"Port Audreyside",
+    "phone":"378.490.0754x70638"
+  },
+  {
+    "id":"259f4329-e6f4-490b-9a16-4106cf6a659e",
+    "name":"Walter Pratt",
+    "email":"hmassey@example.com",
+    "age":78.0,
+    "city":"North Davidborough",
+    "phone":"3665503008"
+  }
+]
