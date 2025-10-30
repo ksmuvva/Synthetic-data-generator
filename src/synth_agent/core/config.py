@@ -30,7 +30,7 @@ class LLMConfig(BaseSettings):
     enable_cache: bool = Field(default=True)
     cache_ttl: int = Field(default=3600)
 
-    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_LLM_")
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_LLM_", extra="ignore")
 
 
 class GenerationConfig(BaseSettings):
@@ -49,7 +49,7 @@ class GenerationConfig(BaseSettings):
     parallel_generation: bool = Field(default=True)
     max_workers: int = Field(default=4, ge=1, le=32)
 
-    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_GENERATION_")
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_GENERATION_", extra="ignore")
 
 
 class StorageConfig(BaseSettings):
@@ -64,7 +64,7 @@ class StorageConfig(BaseSettings):
     enable_chunking: bool = Field(default=True)
     chunk_size_mb: int = Field(default=100, ge=1, le=1000)
 
-    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_STORAGE_")
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_STORAGE_", extra="ignore")
 
 
 class ConversationConfig(BaseSettings):
@@ -77,7 +77,7 @@ class ConversationConfig(BaseSettings):
     show_progress: bool = Field(default=True)
     verbose_mode: bool = Field(default=False)
 
-    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_CONVERSATION_")
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_CONVERSATION_", extra="ignore")
 
 
 class AnalysisConfig(BaseSettings):
@@ -91,7 +91,7 @@ class AnalysisConfig(BaseSettings):
     ambiguity_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
     max_clarification_questions: int = Field(default=5, ge=1, le=20)
 
-    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_ANALYSIS_")
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_ANALYSIS_", extra="ignore")
 
 
 class LoggingConfig(BaseSettings):
@@ -108,7 +108,7 @@ class LoggingConfig(BaseSettings):
     log_api_calls: bool = Field(default=False)
     mask_sensitive_data: bool = Field(default=True)
 
-    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_LOGGING_")
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_LOGGING_", extra="ignore")
 
 
 class SecurityConfig(BaseSettings):
@@ -124,7 +124,7 @@ class SecurityConfig(BaseSettings):
     )
     require_api_key: bool = Field(default=True)
 
-    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_SECURITY_")
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_SECURITY_", extra="ignore")
 
 
 class UIConfig(BaseSettings):
@@ -138,7 +138,7 @@ class UIConfig(BaseSettings):
     show_hints: bool = Field(default=True)
     show_examples: bool = Field(default=True)
 
-    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_UI_")
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_UI_", extra="ignore")
 
 
 class Config:
