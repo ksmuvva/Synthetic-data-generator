@@ -215,6 +215,175 @@ async def conversation_loop(conversation: ConversationManager, initial_input: st
 
 
 @app.command()
+def list_sessions(
+    config_file: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="Path to configuration file"
+    ),
+    limit: int = typer.Option(20, "--limit", "-l", help="Number of recent sessions to show"),
+) -> None:
+    """
+    List all saved sessions.
+
+    Shows recent sessions with their IDs, creation times, and current phases.
+    """
+    try:
+        # Load configuration
+        config = get_config(config_path=config_file)
+
+        # Create session manager
+        session_db_path = Path(config.storage.session_dir) / config.storage.session_db
+        session_manager = SessionManager(session_db_path)
+
+        # Get sessions
+        sessions = session_manager.list_sessions(limit=limit)
+
+        if not sessions:
+            print_info("No saved sessions found.")
+            return
+
+        console.print(f"\n[bold cyan]Saved Sessions (showing {len(sessions)}):[/bold cyan]\n")
+
+        from rich.table import Table
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Session ID", style="cyan")
+        table.add_column("Created", style="green")
+        table.add_column("Updated", style="yellow")
+        table.add_column("Phase", style="blue")
+        table.add_column("Requirements", style="white")
+
+        for session in sessions:
+            requirements = session.get("requirements", {})
+            req_summary = requirements.get("data_type", "N/A") if requirements else "N/A"
+
+            table.add_row(
+                session.get("session_id", "N/A")[:16] + "...",
+                session.get("created_at", "N/A")[:19],
+                session.get("updated_at", "N/A")[:19],
+                session.get("phase", "N/A"),
+                req_summary[:30] + "..." if len(req_summary) > 30 else req_summary
+            )
+
+        console.print(table)
+        console.print(f"\n[dim]Use 'synth-agent resume <session-id>' to continue a session.[/dim]\n")
+
+    except Exception as e:
+        print_error(f"Failed to list sessions: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def resume(
+    session_id: str = typer.Argument(..., help="Session ID to resume"),
+    config_file: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="Path to configuration file"
+    ),
+    provider: Optional[str] = typer.Option(
+        None, "--provider", "-p", help="LLM provider (openai, anthropic)"
+    ),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="Model name to use"),
+    output_dir: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output directory for generated data"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
+) -> None:
+    """
+    Resume a saved session.
+
+    Loads a previously saved session and continues the conversation
+    from where it left off.
+    """
+    try:
+        # Print welcome
+        print_welcome()
+
+        # Load configuration
+        config_overrides = {}
+        if provider:
+            config_overrides["llm"] = {"provider": provider}
+        if model:
+            if "llm" not in config_overrides:
+                config_overrides["llm"] = {}
+            config_overrides["llm"]["model"] = model
+        if output_dir:
+            config_overrides["storage"] = {"default_output_dir": str(output_dir)}
+
+        config = get_config(config_path=config_file, **config_overrides)
+
+        if verbose:
+            print_info(f"Using LLM provider: {config.llm.provider}")
+            print_info(f"Using model: {config.llm.model}")
+
+        # Get API keys
+        api_keys = get_api_keys()
+
+        # Validate API key
+        if config.llm.provider == "openai":
+            if not api_keys.openai_api_key:
+                raise ConfigurationError(
+                    "OpenAI API key not found. Set OPENAI_API_KEY environment variable."
+                )
+            api_key = api_keys.openai_api_key
+        elif config.llm.provider == "anthropic":
+            if not api_keys.anthropic_api_key:
+                raise ConfigurationError(
+                    "Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable."
+                )
+            api_key = api_keys.anthropic_api_key
+        else:
+            raise ConfigurationError(f"Unsupported provider: {config.llm.provider}")
+
+        # Create LLM manager
+        llm_manager = create_llm_manager(config, api_key)
+
+        # Create session manager
+        session_db_path = Path(config.storage.session_dir) / config.storage.session_db
+        session_manager = SessionManager(session_db_path)
+
+        # Load session
+        print_info(f"Loading session: {session_id[:16]}...")
+        session_data = session_manager.load_session(session_id)
+
+        if not session_data:
+            print_error(f"Session not found: {session_id}")
+            raise typer.Exit(1)
+
+        # Create conversation manager with loaded session
+        conversation = ConversationManager(llm_manager, config, session_manager)
+        conversation.load_from_session(session_data)
+
+        print_success(f"Session resumed from phase: {session_data.get('phase', 'unknown')}")
+
+        # Show conversation history summary
+        history = session_data.get("conversation_history", [])
+        if history:
+            console.print(f"\n[dim]Previous conversation ({len(history)} messages):[/dim]")
+            for msg in history[-3:]:  # Show last 3 messages
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")[:100]
+                console.print(f"  [dim]{role}:[/dim] {content}...")
+
+        console.print("\n[bold cyan]Continue the conversation:[/bold cyan]\n")
+
+        # Get user input
+        user_input = Prompt.ask("\n[bold]You[/bold]")
+
+        # Run conversation loop
+        asyncio.run(conversation_loop(conversation, user_input))
+
+    except ConfigurationError as e:
+        print_error(str(e))
+        raise typer.Exit(1)
+    except KeyboardInterrupt:
+        console.print("\n\n[yellow]Conversation interrupted by user.[/yellow]")
+        raise typer.Exit(0)
+    except Exception as e:
+        print_error(f"Unexpected error: {e}")
+        if verbose:
+            console.print_exception()
+        raise typer.Exit(1)
+
+
+@app.command()
 def version() -> None:
     """Show version information."""
     console.print(f"Synthetic Data Generator v{__version__}")

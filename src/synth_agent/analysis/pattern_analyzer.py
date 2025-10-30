@@ -7,6 +7,7 @@ from io import StringIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import pandas as pd
 from scipy import stats
 
@@ -173,6 +174,7 @@ class PatternAnalyzer:
 
         # Numeric analysis
         if pd.api.types.is_numeric_dtype(series):
+            dist_info = self._detect_distribution(series.dropna())
             field_info.update(
                 {
                     "min": float(series.min()),
@@ -180,18 +182,37 @@ class PatternAnalyzer:
                     "mean": float(series.mean()),
                     "median": float(series.median()),
                     "std": float(series.std()),
-                    "distribution": self._detect_distribution(series.dropna()),
+                    "quartiles": {
+                        "q1": float(series.quantile(0.25)),
+                        "q2": float(series.quantile(0.5)),
+                        "q3": float(series.quantile(0.75)),
+                    },
+                    "distribution": dist_info["name"],
+                    "distribution_params": dist_info["params"],
                 }
             )
 
         # Categorical analysis
         elif pd.api.types.is_string_dtype(series) or pd.api.types.is_object_dtype(series):
             value_counts = series.value_counts()
+            total_count = len(series.dropna())
+
+            # Extract value distribution for replication
+            value_distribution = {}
+            if total_count > 0:
+                for value, count in value_counts.items():
+                    value_distribution[str(value)] = {
+                        "count": int(count),
+                        "frequency": float(count / total_count)
+                    }
+
             field_info.update(
                 {
                     "most_common": value_counts.head(5).to_dict(),
                     "avg_length": float(series.dropna().astype(str).str.len().mean()),
                     "pattern": self._detect_pattern(series.dropna()),
+                    "value_distribution": value_distribution,
+                    "cardinality_ratio": float(series.nunique() / len(series)) if len(series) > 0 else 0.0,
                 }
             )
 
@@ -203,33 +224,123 @@ class PatternAnalyzer:
 
         return field_info
 
-    def _detect_distribution(self, series: pd.Series) -> str:
-        """Detect statistical distribution of numeric data."""
+    def _detect_distribution(self, series: pd.Series) -> Dict[str, Any]:
+        """
+        Detect statistical distribution of numeric data and extract parameters.
+
+        Returns:
+            Dictionary with distribution name and parameters for replication
+        """
         try:
-            # Normalize data
-            data = (series - series.mean()) / series.std()
+            data = series.values
 
             # Test for normal distribution
-            _, p_value = stats.normaltest(data)
-            if p_value > 0.05:
-                return "normal"
+            _, p_value_normal = stats.normaltest(data)
+
+            if p_value_normal > 0.05:
+                # Normal distribution detected
+                return {
+                    "name": "normal",
+                    "params": {
+                        "mean": float(series.mean()),
+                        "std": float(series.std()),
+                        "loc": float(series.mean()),
+                        "scale": float(series.std()),
+                    }
+                }
 
             # Test for uniform distribution
-            _, p_value = stats.kstest(data, "uniform")
-            if p_value > 0.05:
-                return "uniform"
+            _, p_value_uniform = stats.kstest(data, "uniform")
 
-            # Check skewness
+            if p_value_uniform > 0.05:
+                # Uniform distribution detected
+                return {
+                    "name": "uniform",
+                    "params": {
+                        "low": float(series.min()),
+                        "high": float(series.max()),
+                        "loc": float(series.min()),
+                        "scale": float(series.max() - series.min()),
+                    }
+                }
+
+            # Try to fit exponential distribution
+            try:
+                if (data >= 0).all():  # Exponential only for non-negative data
+                    exp_params = stats.expon.fit(data)
+                    # Test goodness of fit
+                    _, p_value_exp = stats.kstest(data, "expon", args=exp_params)
+
+                    if p_value_exp > 0.05:
+                        return {
+                            "name": "exponential",
+                            "params": {
+                                "loc": float(exp_params[0]),
+                                "scale": float(exp_params[1]),
+                                "lambda": float(1.0 / exp_params[1]) if exp_params[1] > 0 else 1.0,
+                            }
+                        }
+            except Exception:
+                pass
+
+            # Try to fit lognormal distribution
+            try:
+                if (data > 0).all():  # Lognormal only for positive data
+                    lognorm_params = stats.lognorm.fit(data)
+                    _, p_value_lognorm = stats.kstest(data, "lognorm", args=lognorm_params)
+
+                    if p_value_lognorm > 0.05:
+                        return {
+                            "name": "lognormal",
+                            "params": {
+                                "s": float(lognorm_params[0]),
+                                "loc": float(lognorm_params[1]),
+                                "scale": float(lognorm_params[2]),
+                            }
+                        }
+            except Exception:
+                pass
+
+            # Check skewness for empirical classification
             skewness = series.skew()
-            if abs(skewness) < 0.5:
-                return "symmetric"
-            elif skewness > 0:
-                return "right_skewed"
-            else:
-                return "left_skewed"
 
-        except Exception:
-            return "unknown"
+            if abs(skewness) < 0.5:
+                dist_name = "symmetric"
+            elif skewness > 0:
+                dist_name = "right_skewed"
+            else:
+                dist_name = "left_skewed"
+
+            # Return empirical parameters for sampling
+            return {
+                "name": dist_name,
+                "params": {
+                    "mean": float(series.mean()),
+                    "std": float(series.std()),
+                    "min": float(series.min()),
+                    "max": float(series.max()),
+                    "skewness": float(skewness),
+                    "kurtosis": float(series.kurtosis()),
+                    # Store actual data percentiles for better sampling
+                    "percentiles": {
+                        "p5": float(series.quantile(0.05)),
+                        "p25": float(series.quantile(0.25)),
+                        "p50": float(series.quantile(0.50)),
+                        "p75": float(series.quantile(0.75)),
+                        "p95": float(series.quantile(0.95)),
+                    }
+                }
+            }
+
+        except Exception as e:
+            return {
+                "name": "unknown",
+                "params": {
+                    "mean": float(series.mean()) if len(series) > 0 else 0.0,
+                    "std": float(series.std()) if len(series) > 0 else 1.0,
+                    "error": str(e)
+                }
+            }
 
     def _detect_pattern(self, series: pd.Series) -> Optional[str]:
         """Detect common patterns in string data."""
