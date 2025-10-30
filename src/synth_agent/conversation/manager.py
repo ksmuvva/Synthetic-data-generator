@@ -2,6 +2,7 @@
 Conversation Manager - Orchestrates multi-turn conversation flow for the agent.
 """
 
+import logging
 import uuid
 from datetime import datetime
 from enum import Enum
@@ -19,6 +20,9 @@ from synth_agent.core.session import SessionManager, SessionState
 from synth_agent.formats.manager import FormatManager
 from synth_agent.generation.engine import DataGenerationEngine
 from synth_agent.llm.manager import LLMManager
+from synth_agent.utils.helpers import sanitize_user_input, validate_file_path
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationPhase(Enum):
@@ -73,6 +77,8 @@ class ConversationManager:
         self.generated_data: Optional[pd.DataFrame] = None
         self.conversation_history: List[Dict[str, str]] = []
         self.created_at = datetime.now()
+        
+        logger.info(f"Initialized ConversationManager with session_id: {self.session_id}")
 
     async def process_user_input(self, user_input: str) -> Dict[str, Any]:
         """
@@ -84,6 +90,19 @@ class ConversationManager:
         Returns:
             Response dictionary with message and metadata
         """
+        try:
+            # Sanitize user input for security
+            user_input = sanitize_user_input(user_input, max_length=10000)
+        except Exception as e:
+            logger.error(f"Input sanitization failed: {e}")
+            return {
+                "message": f"Invalid input: {e}",
+                "phase": self.phase.value,
+                "error": True,
+            }
+        
+        logger.debug(f"Processing user input in phase: {self.phase.value}")
+        
         # Add to conversation history
         self._add_to_history("user", user_input)
 
@@ -249,10 +268,20 @@ class ConversationManager:
 
     async def _handle_pattern_analysis(self, user_input: str) -> Dict[str, Any]:
         """Handle pattern data analysis."""
-        file_path = Path(user_input.strip())
+        file_path = Path(user_input.strip()).expanduser().resolve()
+        
+        logger.info(f"Analyzing pattern file: {file_path}")
 
         try:
+            # Validate file path for security
+            validate_file_path(
+                file_path,
+                allowed_extensions=self.config.security.allowed_file_extensions,
+                max_size_mb=self.config.security.max_file_size_mb
+            )
+            
             self.pattern_data = await self.pattern_analyzer.analyze_pattern_file(file_path)
+            logger.info(f"Pattern data analyzed successfully: {len(self.pattern_data.get('fields', []))} fields")
             self.phase = ConversationPhase.GENERATION_CONFIRMATION
 
             return {
@@ -281,6 +310,7 @@ class ConversationManager:
 
         # Generate data
         self.phase = ConversationPhase.GENERATING
+        logger.info("Starting data generation")
 
         try:
             # Create schema from requirements
@@ -288,6 +318,7 @@ class ConversationManager:
 
             # Generate data
             num_rows = self.requirements.get("size", self.config.generation.default_rows)
+            logger.info(f"Generating {num_rows} rows of data")
             self.generated_data = self.data_generator.generate(
                 schema=schema, num_rows=num_rows, pattern_analysis=self.pattern_data
             )
@@ -303,6 +334,7 @@ class ConversationManager:
             self.format_manager.export(self.generated_data, output_file, format_name)
 
             self.phase = ConversationPhase.COMPLETED
+            logger.info(f"Data generation completed successfully: {len(self.generated_data)} rows, saved to {output_file}")
 
             return {
                 "message": f"Success! Generated {len(self.generated_data)} rows of synthetic data.\n\n"
@@ -315,6 +347,7 @@ class ConversationManager:
             }
 
         except Exception as e:
+            logger.error(f"Data generation failed: {e}")
             self.phase = ConversationPhase.GENERATION_CONFIRMATION
             raise SynthAgentError(f"Failed to generate data: {e}")
 

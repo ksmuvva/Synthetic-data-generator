@@ -16,22 +16,25 @@ from synth_agent.core.exceptions import ConstraintViolationError, DataGeneration
 class DataGenerationEngine:
     """Core engine for generating synthetic data."""
 
-    def __init__(self, config: Config, locale: str = "en") -> None:
+    def __init__(self, config: Config, locale: str = "en", seed: Optional[int] = None) -> None:
         """
         Initialize data generation engine.
 
         Args:
             config: Configuration object
             locale: Locale for data generation
+            seed: Optional seed for reproducibility. If None, uses random seed.
         """
         self.config = config
         self.faker = Faker(locale)
         self.mimesis = Generic(locale)
         self.locale = locale
+        self.seed = seed
 
         # Set seed for reproducibility if configured
-        Faker.seed(0)
-        np.random.seed(0)
+        if seed is not None:
+            Faker.seed(seed)
+            np.random.seed(seed)
 
     def generate(
         self,
