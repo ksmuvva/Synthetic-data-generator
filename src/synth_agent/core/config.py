@@ -166,15 +166,15 @@ class Config:
         # Apply overrides (CLI flags)
         self._config_data.update(overrides)
 
-        # Initialize subsections
-        self.llm = LLMConfig(**self._config_data.get("llm", {}))
-        self.generation = GenerationConfig(**self._config_data.get("generation", {}))
-        self.storage = StorageConfig(**self._config_data.get("storage", {}))
-        self.conversation = ConversationConfig(**self._config_data.get("conversation", {}))
-        self.analysis = AnalysisConfig(**self._config_data.get("analysis", {}))
-        self.logging = LoggingConfig(**self._config_data.get("logging", {}))
-        self.security = SecurityConfig(**self._config_data.get("security", {}))
-        self.ui = UIConfig(**self._config_data.get("ui", {}))
+        # Initialize subsections with filtered config data
+        self.llm = LLMConfig(**self._filter_extra_keys(self._config_data.get("llm", {}), LLMConfig))
+        self.generation = GenerationConfig(**self._filter_extra_keys(self._config_data.get("generation", {}), GenerationConfig))
+        self.storage = StorageConfig(**self._filter_extra_keys(self._config_data.get("storage", {}), StorageConfig))
+        self.conversation = ConversationConfig(**self._filter_extra_keys(self._config_data.get("conversation", {}), ConversationConfig))
+        self.analysis = AnalysisConfig(**self._filter_extra_keys(self._config_data.get("analysis", {}), AnalysisConfig))
+        self.logging = LoggingConfig(**self._filter_extra_keys(self._config_data.get("logging", {}), LoggingConfig))
+        self.security = SecurityConfig(**self._filter_extra_keys(self._config_data.get("security", {}), SecurityConfig))
+        self.ui = UIConfig(**self._filter_extra_keys(self._config_data.get("ui", {}), UIConfig))
 
         # Expand paths
         self._expand_paths()
@@ -183,6 +183,19 @@ class Config:
         """Load configuration from YAML file."""
         with open(config_path, "r") as f:
             self._config_data = yaml.safe_load(f) or {}
+
+    def _filter_extra_keys(self, config_dict: Dict[str, Any], config_class: type) -> Dict[str, Any]:
+        """Filter out extra keys that aren't part of the Pydantic model."""
+        if not config_dict:
+            return {}
+
+        # Get the field names from the Pydantic model
+        model_fields = config_class.model_fields.keys()
+
+        # Filter to only include keys that are in the model
+        filtered = {k: v for k, v in config_dict.items() if k in model_fields}
+
+        return filtered
 
     def _expand_paths(self) -> None:
         """Expand user paths (~) in configuration."""
