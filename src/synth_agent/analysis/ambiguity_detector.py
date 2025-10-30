@@ -3,6 +3,7 @@ Ambiguity Detector - Identifies unclear or conflicting requirements.
 """
 
 import json
+import logging
 from typing import Any, Dict, List
 
 from synth_agent.core.config import Config
@@ -15,6 +16,9 @@ from synth_agent.llm.prompts import (
     SYSTEM_PROMPT,
     format_prompt,
 )
+from synth_agent.utils.helpers import extract_json_from_text
+
+logger = logging.getLogger(__name__)
 
 
 class AmbiguityDetector:
@@ -42,6 +46,8 @@ class AmbiguityDetector:
             Dictionary with ambiguity analysis
         """
         try:
+            logger.info("Detecting ambiguities in requirements")
+
             # Create prompt
             prompt = format_prompt(
                 AMBIGUITY_DETECTION_PROMPT, requirements=json.dumps(requirements, indent=2)
@@ -57,7 +63,7 @@ class AmbiguityDetector:
             response = await self.llm_manager.chat(messages)
 
             # Parse response
-            analysis = self._extract_json(response.content)
+            analysis = extract_json_from_text(response.content)
 
             return analysis
 
@@ -75,6 +81,8 @@ class AmbiguityDetector:
             List of clarifying questions
         """
         try:
+            logger.info(f"Generating clarifying questions for {len(ambiguities)} ambiguities")
+
             # Limit number of questions based on config
             max_questions = self.config.analysis.max_clarification_questions
             priority_ambiguities = self._prioritize_ambiguities(ambiguities, max_questions)
@@ -94,14 +102,16 @@ class AmbiguityDetector:
             response = await self.llm_manager.chat(messages)
 
             # Parse response
-            questions = self._extract_json(response.content)
+            questions = extract_json_from_text(response.content)
 
             if not isinstance(questions, list):
                 raise AmbiguityError("Expected list of questions")
 
+            logger.info(f"Generated {len(questions)} clarifying questions")
             return questions
 
         except Exception as e:
+            logger.error(f"Failed to generate questions: {e}")
             raise AmbiguityError(f"Failed to generate questions: {e}")
 
     def has_critical_ambiguities(self, analysis: Dict[str, Any]) -> bool:
@@ -189,30 +199,6 @@ class AmbiguityDetector:
         threshold = self.config.analysis.confidence_threshold
 
         return confidence >= threshold
-
-    def _extract_json(self, text: str) -> Any:
-        """
-        Extract JSON from LLM response.
-
-        Args:
-            text: Text potentially containing JSON
-
-        Returns:
-            Parsed JSON object
-        """
-        # Try to extract JSON from markdown code blocks
-        if "```json" in text:
-            start = text.find("```json") + 7
-            end = text.find("```", start)
-            json_text = text[start:end].strip()
-        elif "```" in text:
-            start = text.find("```") + 3
-            end = text.find("```", start)
-            json_text = text[start:end].strip()
-        else:
-            json_text = text.strip()
-
-        return json.loads(json_text)
 
     def get_ambiguity_summary(self, analysis: Dict[str, Any]) -> str:
         """

@@ -5,6 +5,7 @@ LLM Manager for orchestrating LLM interactions with retry logic and caching.
 import asyncio
 import hashlib
 import json
+import logging
 import time
 from typing import Any, Dict, List, Optional
 
@@ -14,12 +15,14 @@ from synth_agent.llm.anthropic_provider import AnthropicProvider
 from synth_agent.llm.base import BaseLLMProvider, LLMMessage, LLMResponse
 from synth_agent.llm.openai_provider import OpenAIProvider
 
+logger = logging.getLogger(__name__)
+
 
 class LLMManager:
     """Manages LLM interactions with retry logic and caching."""
 
     def __init__(
-        self, provider: BaseLLMProvider, config: Config, enable_cache: bool = True
+        self, provider: BaseLLMProvider, config: Config, enable_cache: bool = True, max_cache_size: int = 1000
     ) -> None:
         """
         Initialize LLM manager.
@@ -28,11 +31,14 @@ class LLMManager:
             provider: LLM provider instance
             config: Configuration object
             enable_cache: Whether to enable response caching
+            max_cache_size: Maximum number of entries in cache (prevents memory leak)
         """
         self.provider = provider
         self.config = config
         self.enable_cache = enable_cache
+        self.max_cache_size = max_cache_size
         self._cache: Dict[str, tuple[LLMResponse, float]] = {}  # hash -> (response, timestamp)
+        logger.info(f"Initialized LLM Manager with provider: {provider.__class__.__name__}, cache: {enable_cache}")
 
     async def complete(self, prompt: str, **kwargs: Any) -> LLMResponse:
         """
@@ -50,12 +56,15 @@ class LLMManager:
             cache_key = self._get_cache_key(prompt, kwargs)
             cached_response = self._get_from_cache(cache_key)
             if cached_response:
+                logger.debug("Cache hit for completion request")
                 return cached_response
 
         # Attempt with retries
+        logger.debug(f"Generating completion with prompt length: {len(prompt)}")
         response = await self._retry_with_backoff(
             lambda: self.provider.complete(prompt, **kwargs)
         )
+        logger.info(f"Completion generated: {response.usage.get('total_tokens', 0)} tokens")
 
         # Cache response
         if self.enable_cache:
@@ -111,17 +120,23 @@ class LLMManager:
         last_error = None
         for attempt in range(max_retries + 1):
             try:
-                return await func()
+                result = await func()
+                if attempt > 0:
+                    logger.info(f"LLM call succeeded after {attempt} retries")
+                return result
             except LLMProviderError as e:
                 last_error = e
                 if attempt < max_retries:
                     delay = retry_delays[min(attempt, len(retry_delays) - 1)]
+                    logger.warning(f"LLM call failed (attempt {attempt + 1}/{max_retries + 1}), retrying in {delay}s: {e}")
                     await asyncio.sleep(delay)
                     continue
                 else:
+                    logger.error(f"LLM call failed after {max_retries + 1} attempts: {e}")
                     raise
             except Exception as e:
                 # Don't retry on unexpected errors
+                logger.error(f"Unexpected error in LLM call: {e}")
                 raise LLMError(f"Unexpected error in LLM call: {e}")
 
         # Should not reach here, but just in case
@@ -167,13 +182,21 @@ class LLMManager:
 
     def _add_to_cache(self, key: str, response: LLMResponse) -> None:
         """
-        Add response to cache.
+        Add response to cache with LRU eviction.
 
         Args:
             key: Cache key
             response: Response to cache
         """
+        # Implement LRU eviction if cache is full
+        if len(self._cache) >= self.max_cache_size:
+            # Remove oldest entry
+            oldest_key = min(self._cache.keys(), key=lambda k: self._cache[k][1])
+            del self._cache[oldest_key]
+            logger.debug(f"Cache full, evicted oldest entry. Size: {len(self._cache)}")
+
         self._cache[key] = (response, time.time())
+        logger.debug(f"Added to cache. Cache size: {len(self._cache)}/{self.max_cache_size}")
 
     def clear_cache(self) -> None:
         """Clear the response cache."""

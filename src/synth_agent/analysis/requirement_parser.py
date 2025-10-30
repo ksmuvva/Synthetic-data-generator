@@ -3,12 +3,16 @@ Requirement Parser - Extracts structured requirements from natural language.
 """
 
 import json
+import logging
 from typing import Any, Dict, List, Optional
 
 from synth_agent.core.exceptions import ValidationError
 from synth_agent.llm.base import LLMMessage
 from synth_agent.llm.manager import LLMManager
 from synth_agent.llm.prompts import REQUIREMENT_EXTRACTION_PROMPT, SYSTEM_PROMPT, format_prompt
+from synth_agent.utils.helpers import extract_json_from_text
+
+logger = logging.getLogger(__name__)
 
 
 class RequirementParser:
@@ -37,6 +41,8 @@ class RequirementParser:
             ValidationError: If parsing fails
         """
         try:
+            logger.info(f"Parsing requirements from user input (length: {len(user_input)})")
+
             # Create prompt
             prompt = format_prompt(REQUIREMENT_EXTRACTION_PROMPT, user_input=user_input)
 
@@ -49,17 +55,20 @@ class RequirementParser:
             # Get LLM response
             response = await self.llm_manager.chat(messages)
 
-            # Parse JSON response
-            requirements = self._extract_json(response.content)
+            # Parse JSON response using shared utility
+            requirements = extract_json_from_text(response.content)
 
             # Validate requirements structure
             self._validate_requirements(requirements)
 
+            logger.info(f"Successfully parsed requirements with {len(requirements.get('fields', []))} fields")
             return requirements
 
         except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse requirements JSON: {e}")
             raise ValidationError(f"Failed to parse LLM response as JSON: {e}")
         except Exception as e:
+            logger.error(f"Failed to parse requirements: {e}")
             raise ValidationError(f"Failed to parse requirements: {e}")
 
     async def refine_requirements(
@@ -76,6 +85,8 @@ class RequirementParser:
             Updated requirements
         """
         try:
+            logger.info("Refining requirements based on user clarifications")
+
             prompt = f"""Update the following requirements based on user clarifications:
 
 Current Requirements:
@@ -92,37 +103,16 @@ Return the updated requirements in the same JSON format, incorporating the clari
             ]
 
             response = await self.llm_manager.chat(messages)
-            updated_requirements = self._extract_json(response.content)
+            updated_requirements = extract_json_from_text(response.content)
             self._validate_requirements(updated_requirements)
 
+            logger.info("Successfully refined requirements")
             return updated_requirements
 
         except Exception as e:
+            logger.error(f"Failed to refine requirements: {e}")
             raise ValidationError(f"Failed to refine requirements: {e}")
 
-    def _extract_json(self, text: str) -> Dict[str, Any]:
-        """
-        Extract JSON from LLM response (handles markdown code blocks).
-
-        Args:
-            text: Text potentially containing JSON
-
-        Returns:
-            Parsed JSON object
-        """
-        # Try to extract JSON from markdown code blocks
-        if "```json" in text:
-            start = text.find("```json") + 7
-            end = text.find("```", start)
-            json_text = text[start:end].strip()
-        elif "```" in text:
-            start = text.find("```") + 3
-            end = text.find("```", start)
-            json_text = text[start:end].strip()
-        else:
-            json_text = text.strip()
-
-        return json.loads(json_text)
 
     def _validate_requirements(self, requirements: Dict[str, Any]) -> None:
         """
