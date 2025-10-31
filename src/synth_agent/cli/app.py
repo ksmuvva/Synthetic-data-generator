@@ -384,6 +384,164 @@ def resume(
 
 
 @app.command()
+def agent(
+    config_file: Optional[Path] = typer.Option(
+        None, "--config", "-c", help="Path to configuration file"
+    ),
+    prompt: Optional[str] = typer.Option(
+        None, "--prompt", "-p", help="Initial prompt for the agent"
+    ),
+    output_dir: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output directory for generated data"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
+) -> None:
+    """
+    Start an interactive Claude Agent SDK session for synthetic data generation.
+
+    This command uses the Claude Agent SDK to provide an enhanced conversational
+    interface with custom tools for data generation. The agent can:
+    - Analyze requirements from natural language
+    - Detect and resolve ambiguities
+    - Analyze pattern data
+    - Generate synthetic data
+    - Export to various formats
+
+    The agent mode provides better tool integration and more flexible conversations.
+    """
+    try:
+        # Print welcome
+        print_welcome()
+        console.print(
+            "\n[bold cyan]Starting Claude Agent SDK mode...[/bold cyan]\n"
+        )
+
+        # Load configuration
+        config_overrides = {}
+        if output_dir:
+            config_overrides["storage"] = {"default_output_dir": str(output_dir)}
+
+        config = get_config(config_path=config_file, **config_overrides)
+
+        if verbose:
+            print_info("Claude Agent SDK mode enabled")
+            print_info("Custom tools: analyze_requirements, detect_ambiguities, generate_data, export_data")
+
+        # Import agent components
+        from synth_agent.agent import SynthAgentClient
+        from synth_agent.core.config import Config
+
+        # Convert old config to new Config format
+        app_config = Config()
+        # Note: In production, you'd want to properly map the old config to the new one
+
+        # Get initial prompt
+        if prompt:
+            initial_prompt = prompt
+        else:
+            console.print(
+                "Describe the data you'd like to generate. For example:\n"
+                "  - 'Generate 1000 customer records with name, email, and age'\n"
+                "  - 'Create a sales dataset with date, product, quantity, and price'\n"
+                "  - 'I need user data with authentication details'\n"
+            )
+            initial_prompt = Prompt.ask("\n[bold]You[/bold]")
+
+        # Run agent session
+        asyncio.run(agent_loop(app_config, initial_prompt, verbose))
+
+    except ConfigurationError as e:
+        print_error(str(e))
+        raise typer.Exit(1)
+    except KeyboardInterrupt:
+        console.print("\n\n[yellow]Agent session interrupted by user.[/yellow]")
+        raise typer.Exit(0)
+    except Exception as e:
+        print_error(f"Unexpected error: {e}")
+        if verbose:
+            console.print_exception()
+        raise typer.Exit(1)
+
+
+async def agent_loop(config: "AppConfig", initial_prompt: str, verbose: bool = False) -> None:
+    """
+    Run the Claude Agent SDK loop.
+
+    Args:
+        config: Application configuration
+        initial_prompt: Initial user prompt
+        verbose: Enable verbose output
+    """
+    from synth_agent.agent import SynthAgentClient
+
+    try:
+        # Create agent client
+        async with SynthAgentClient(config=config) as client:
+            console.print("[bold cyan]Agent initialized with custom tools[/bold cyan]\n")
+
+            # Send initial query and process responses
+            async for message in client.query(initial_prompt):
+                # Handle different message types
+                msg_type = message.get("type", "unknown")
+
+                if msg_type == "text":
+                    content = message.get("content", "")
+                    console.print(f"\n[bold magenta]Agent:[/bold magenta] {content}\n")
+
+                elif msg_type == "tool_use":
+                    tool_name = message.get("name", "unknown")
+                    if verbose:
+                        console.print(f"[dim]Using tool: {tool_name}[/dim]")
+
+                elif msg_type == "tool_result":
+                    if verbose:
+                        tool_name = message.get("tool_name", "unknown")
+                        console.print(f"[dim]Tool {tool_name} completed[/dim]")
+
+                elif msg_type == "error":
+                    error_msg = message.get("content", "Unknown error")
+                    print_error(error_msg)
+
+            # After initial response, allow continued interaction
+            console.print("\n[bold cyan]Continue the conversation (type 'exit' to quit):[/bold cyan]\n")
+
+            while True:
+                user_input = Prompt.ask("\n[bold]You[/bold]")
+
+                if user_input.lower() in ["exit", "quit", "done"]:
+                    print_success("Agent session completed!")
+                    break
+
+                # Process user input
+                async for message in client.query(user_input):
+                    msg_type = message.get("type", "unknown")
+
+                    if msg_type == "text":
+                        content = message.get("content", "")
+                        console.print(f"\n[bold magenta]Agent:[/bold magenta] {content}\n")
+
+                    elif msg_type == "tool_use":
+                        tool_name = message.get("name", "unknown")
+                        if verbose:
+                            console.print(f"[dim]Using tool: {tool_name}[/dim]")
+
+                    elif msg_type == "tool_result":
+                        if verbose:
+                            tool_name = message.get("tool_name", "unknown")
+                            console.print(f"[dim]Tool {tool_name} completed[/dim]")
+
+                    elif msg_type == "error":
+                        error_msg = message.get("content", "Unknown error")
+                        print_error(error_msg)
+
+    except Exception as e:
+        print_error(f"Agent loop error: {e}")
+        if verbose:
+            console.print_exception()
+        raise
+
+
+@app.command()
 def version() -> None:
     """Show version information."""
     console.print(f"Synthetic Data Generator v{__version__}")

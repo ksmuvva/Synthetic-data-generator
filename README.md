@@ -7,10 +7,13 @@ An intelligent CLI agent powered by Large Language Models (LLMs) that generates 
 - **Natural Language Interface**: Describe your data needs in plain English
 - **Intelligent Ambiguity Resolution**: AI agent asks clarifying questions to understand your requirements
 - **Pattern-Based Generation**: Optionally provide sample data to match distributions and patterns
-- **Multiple Output Formats**: CSV, JSON, and more
+- **Multiple Output Formats**: CSV, JSON, Excel, Parquet, XML, SQL, Avro, and more
 - **Semantic Data Generation**: Automatically detects field types (emails, names, addresses, etc.)
 - **Session Persistence**: Resume conversations and save configurations
 - **Multiple LLM Providers**: OpenAI (GPT-4) and Anthropic (Claude) support
+- **🆕 Claude Agent SDK Integration**: Enhanced conversational interface with custom tools (skills)
+- **🆕 Advanced Hooks System**: Deterministic processing at specific points in the agent loop
+- **🆕 In-Process MCP Servers**: Custom tools run directly within Python without subprocess overhead
 
 ## Installation
 
@@ -113,6 +116,49 @@ synth-agent generate --output ./my-data
 synth-agent generate --verbose
 ```
 
+### 🆕 Claude Agent SDK Mode
+
+Use the enhanced agent mode with Claude Agent SDK for better tool integration:
+
+```bash
+# Start agent session
+synth-agent agent
+
+# With initial prompt
+synth-agent agent --prompt "Generate 100 customer records with name and email"
+
+# With custom configuration
+synth-agent agent --config config/agent_config.yaml
+
+# With verbose output
+synth-agent agent --verbose
+```
+
+**Agent Mode Features:**
+- **Custom Tools (Skills)**: Specialized tools for data generation
+  - `analyze_requirements`: Extract structured specs from natural language
+  - `detect_ambiguities`: Identify unclear requirements
+  - `analyze_pattern`: Analyze sample data patterns
+  - `generate_data`: Generate synthetic data
+  - `export_data`: Export to various formats
+  - `list_formats`: Show available formats
+
+- **Bidirectional Conversations**: Interactive, stateful conversations
+- **Hooks System**: Pre/post processing at specific stages
+- **Enhanced Error Handling**: Better error messages and recovery
+
+**Installation Requirements for Agent Mode:**
+```bash
+# Install Node.js (if not already installed)
+# Then install Claude Code CLI
+npm install -g @anthropic-ai/claude-code
+
+# Install Python dependencies
+pip install -e .
+```
+
+**See the [Agent SDK Guide](docs/AGENT_SDK_GUIDE.md) for detailed documentation.**
+
 ### Example Session
 
 ```
@@ -198,14 +244,15 @@ The agent automatically recognizes and generates appropriate data for:
 Currently supported formats:
 - **CSV**: Comma-separated values with configurable delimiter
 - **JSON**: JSON arrays with configurable formatting
+- **Excel (XLSX)**: Microsoft Excel workbooks
+- **Parquet**: Apache Parquet columnar format
+- **XML**: Extensible Markup Language
+- **SQL**: SQL INSERT statements with table creation
+- **Avro**: Apache Avro binary format
 
 Coming soon:
-- Excel (XLSX)
-- Parquet
-- XML
 - PDF reports
 - Word documents
-- SQL INSERT statements
 
 ## Configuration Options
 
@@ -254,8 +301,25 @@ synth-agent/
 ├── analysis/         # Requirement parsing and ambiguity detection
 ├── generation/       # Data generation engine
 ├── formats/          # Output format handlers
-└── storage/          # Session and data storage
+├── storage/          # Session and data storage
+└── agent/            # 🆕 Claude Agent SDK integration
+    ├── tools.py      # Custom tools (skills)
+    ├── client.py     # Agent client wrapper
+    └── hooks.py      # Hooks system
 ```
+
+### Agent Tools (Skills)
+
+The agent module provides custom tools as in-process MCP servers:
+
+1. **analyze_requirements**: Extracts structured specifications from natural language
+2. **detect_ambiguities**: Identifies unclear requirements and generates questions
+3. **analyze_pattern**: Analyzes sample data for pattern matching
+4. **generate_data**: Generates synthetic data based on requirements
+5. **export_data**: Exports data to various formats
+6. **list_formats**: Lists available export formats
+
+See `examples/agent/` for usage examples.
 
 ## Development
 
@@ -351,6 +415,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 - Built with [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/)
 - LLM integration via [OpenAI](https://openai.com/) and [Anthropic](https://anthropic.com/)
 - Data generation powered by [Faker](https://faker.readthedocs.io/) and [Mimesis](https://mimesis.name/)
+- Agent integration using [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python)
 
 ## Support
 
