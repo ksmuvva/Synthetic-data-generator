@@ -17,6 +17,11 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class ConfigurationError(Exception):
+    """Configuration error exception."""
+    pass
+
+
 class LLMConfig(BaseSettings):
     """LLM configuration settings."""
 
@@ -234,7 +239,7 @@ class APIKeys(BaseSettings):
     aws_secret_access_key: Optional[str] = Field(default=None, alias="AWS_SECRET_ACCESS_KEY")
     aws_default_region: Optional[str] = Field(default="us-east-1", alias="AWS_DEFAULT_REGION")
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 def get_config(config_path: Optional[Path] = None, **overrides: Any) -> Config:

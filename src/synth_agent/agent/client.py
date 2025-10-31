@@ -164,8 +164,29 @@ Be helpful, precise, and thorough in assisting with data generation tasks.
     async def __aenter__(self) -> "SynthAgentClient":
         """Async context manager entry."""
         try:
+            # Ensure Anthropic API key is available for the SDK child process
+            try:
+                import os
+                from dotenv import load_dotenv  # type: ignore
+                load_dotenv()
+                if not os.getenv("ANTHROPIC_API_KEY"):
+                    raise RuntimeError(
+                        "ANTHROPIC_API_KEY not found in environment; set it or add to .env"
+                    )
+            except RuntimeError:
+                raise
+            except Exception:
+                # dotenv import failure is non-fatal if env already set
+                pass
+
             self._client = ClaudeSDKClient(options=self.agent_options)
-            await self._client.__aenter__()
+            # Bound initialization to avoid indefinite hangs
+            init_timeout = max(5, int(getattr(self.config.llm, "timeout", 30)))
+            try:
+                await asyncio.wait_for(self._client.__aenter__(), timeout=init_timeout)
+            except asyncio.TimeoutError as te:
+                # Raise clearer message for upstream handling
+                raise RuntimeError(f"SDK initialization timed out after {init_timeout}s") from te
             logger.info("ClaudeSDKClient initialized successfully")
             return self
         except Exception as e:
