@@ -1,32 +1,35 @@
-# Synthetic Data Generator
+# 🤖 Synthetic Data Generator
 
-An intelligent CLI agent powered by Large Language Models (LLMs) that generates high-quality synthetic datasets through natural language interaction.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
+An intelligent AI-powered CLI with **fully natural language interface** for generating high-quality synthetic datasets. Just chat with the AI - no commands to remember!
 
-- **Claude Agent SDK Integration**: Built exclusively on Claude Agent SDK for intelligent conversations
-- **Natural Language Interface**: Describe your data needs in plain English
-- **Intelligent Ambiguity Resolution**: AI agent asks clarifying questions to understand your requirements
-- **Pattern-Based Generation**: Optionally provide sample data to match distributions and patterns
-- **Multiple Output Formats**: CSV, JSON, Parquet, and more
-- **Semantic Data Generation**: Automatically detects field types (emails, names, addresses, etc.)
-- **Custom MCP Tools**: Specialized tools for data generation as in-process MCP servers
-- **Advanced Hooks System**: Deterministic processing at specific points in the agent loop
-- **Thread-Safe State Management**: Share data between tool calls with automatic cleanup
+## ✨ What's New - Version 2.0
 
-## Installation
+🚀 **Complete NLP Chat Interface** - The entire CLI is now conversational! Just run `synth-agent` and chat naturally.
+
+### Key Features
+- 💬 **Pure natural language** - No commands to memorize
+- 🤖 **AI-powered understanding** - Describes what you need in plain English
+- 📊 **8 output formats** - CSV, JSON, Excel, Parquet, XML, TXT, PDF, Word (DOCX)
+- 📄 **Document generation** - Create essays, articles, and reports in PDF/Word
+- 🧠 **Context memory** - Remembers your conversation
+- 🔧 **Smart defaults** - Learns your preferences
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Python 3.10 or higher
-- pip or uv package manager
+- Anthropic API key ([Get one here](https://console.anthropic.com/))
 
-### Install from Source
+### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/synthetic-data-generator.git
-cd synthetic-data-generator
+git clone https://github.com/ksmuvva/Synthetic-data-generator.git
+cd Synthetic-data-generator
 
 # Create virtual environment
 python -m venv venv
@@ -36,269 +39,198 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e .
 ```
 
-### Install Development Dependencies
+### Setup API Key
+
+Create a `.env` file in the project directory:
 
 ```bash
-pip install -e ".[dev]"
+ANTHROPIC_API_KEY=your-api-key-here
 ```
 
-## Configuration
-
-### API Keys
-
-Set up your Anthropic API key for Claude Agent SDK:
+### Start Chatting!
 
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-your-anthropic-key-here"
+synth-agent
 ```
 
-Or create a `.env` file:
+That's it! Just start chatting with the AI.
 
-```bash
-cp .env.example .env
-# Edit .env and add your Anthropic API key
-```
+## 💬 Usage Examples
 
-## Usage
-
-### Basic Usage - Claude Agent SDK
-
-Start an interactive agent session:
-
-```bash
-# Interactive mode
-synth-agent agent
-
-# With initial prompt
-synth-agent agent --prompt "Generate 100 customer records with name and email"
-
-# Specify output directory
-synth-agent agent --output ./data
-
-# With verbose output
-synth-agent agent --verbose
-
-# Combined options
-synth-agent agent -p "Create sales data" -o ./output -v
-```
-
-### Command Options
-
-- `--prompt, -p`: Initial prompt for the agent
-- `--output, -o`: Output directory for generated data
-- `--verbose, -v`: Enable verbose output with tool usage logging
-- `--config, -c`: Path to configuration file (optional)
-
-### Agent Features
-- **Custom Tools (Skills)**: Specialized tools for data generation
-  - `analyze_requirements`: Extract structured specs from natural language
-  - `detect_ambiguities`: Identify unclear requirements
-  - `analyze_pattern`: Analyze sample data patterns
-  - `generate_data`: Generate synthetic data
-  - `export_data`: Export to various formats
-  - `list_formats`: Show available formats
-
-- **Bidirectional Conversations**: Interactive, stateful conversations
-- **Hooks System**: Pre/post processing at specific stages
-- **Enhanced Error Handling**: Better error messages and recovery
-- **Thread-Safe State Management**: Share data between tool calls with automatic cleanup
-
-## Claude Agent SDK Compliance
-
-This project has been **completely rebuilt** to strictly comply with the [Claude Agent SDK framework](https://github.com/anthropics/claude-agent-sdk-python). The agent follows all SDK specifications and best practices.
-
-### Architecture Compliance
-
-✅ **MCP Server Registration**
-- Tools are properly packaged using `create_sdk_mcp_server()`
-- Server is registered with `ClaudeAgentOptions.mcp_servers` using namespace mapping
-- All tool names follow the `mcp__<namespace>__<tool_name>` format
-
-✅ **Tool Implementation**
-- All tools use the `@tool` decorator from `claude_agent_sdk`
-- Tools are async functions with proper input schemas
-- Return values follow SDK response format with `content` blocks
-- Error handling with `isError` flags
-
-✅ **Hooks System**
-- Hooks follow SDK specification with correct signatures
-- Async hooks with `(input_data, tool_use_id, context)` parameters
-- Return `HookJSONOutput` dictionaries with proper structure
-- Registered using `HookMatcher` objects
-
-✅ **State Management**
-- Thread-safe `ToolStateManager` for sharing data between tool calls
-- Session-based state with automatic cleanup
-- Support for DataFrames, requirements, and analysis results
-- TTL-based expiration for memory efficiency
-
-✅ **Client Configuration**
-- Proper `ClaudeAgentOptions` initialization
-- Correct allowed_tools list with MCP tool names
-- System prompt with tool descriptions
-- Working directory and hook configuration
-
-### SDK Compliance Testing
-
-Run the compliance test suite to verify SDK integration:
-
-```bash
-python -m pytest tests/test_agent_sdk_compliance.py -v
-```
-
-All tests should pass, confirming:
-- ✅ Tool server structure
-- ✅ Individual tool registration
-- ✅ Client initialization
-- ✅ MCP tool configuration
-- ✅ Hooks creation
-- ✅ State management
-- ✅ System prompt integration
-
-### Example Session
+### Generate Data
 
 ```
-$ synth-agent agent
+You: create 100 customer records with emails and phone numbers
+AI: ✅ Generated customers_20251031_143022.csv with 100 rows
 
-# Synthetic Data Generator v0.1.0
+You: I need JSON data for API testing
+AI: ✅ Generated api_test_data_20251031_143125.json
 
-An intelligent CLI agent for generating high-quality synthetic datasets.
-
-Powered by Claude Agent SDK with custom tools for natural language
-data generation, ambiguity resolution, and multi-format export.
-
-Starting Claude Agent SDK mode...
-
-Describe the data you'd like to generate. For example:
-  - 'Generate 1000 customer records with name, email, and age'
-  - 'Create a sales dataset with date, product, quantity, and price'
-  - 'I need user data with authentication details'
-
-You: Generate 100 customer records with name, email, age, and purchase history
-
-Agent: I'll help you generate customer records. I notice "purchase history" could be
-interpreted in different ways. Let me clarify: would you like the purchase history as:
-1. A simple count of total purchases
-2. An array of product names
-3. Detailed transaction objects with dates and amounts
-
-You: Keep it simple - just a count of purchases
-
-Agent: Perfect! I'll generate 100 customer records with:
-- name (full name)
-- email (email address)
-- age (integer)
-- purchase_count (integer representing total purchases)
-
-I'll create this data in CSV format and save it to the output directory.
-
-*Generating data...*
-
-Success! Generated 100 rows of synthetic customer data.
-Output saved to: ./output/synthetic_customers_20241031.csv
-
-Continue the conversation (type 'exit' to quit):
-
-You: exit
-
-Agent session completed!
+You: make an Excel file with 50 sales transactions
+AI: ✅ Generated sales_transactions_20251031_143210.xlsx with 50 rows
 ```
 
-## Examples
-
-### Generate User Data
+### Generate Documents
 
 ```
-Prompt: "Generate 500 user records with username, email, registration date, and subscription status"
+You: create a PDF document about machine learning
+AI: 📝 Generating document about machine learning in PDF format...
+    ✅ Generated machine_learning_20251031_143305.pdf
+
+You: create a Word document about India
+AI: 📝 Generating document about India in Word format...
+    ✅ Generated india_20251031_143410.docx
+
+You: create a PDF table with employee data
+AI: 📝 Generating 10 rows of employee data in PDF format...
+    ✅ Generated employee_data_20251031_143515.pdf (table format)
 ```
 
-### Generate Sales Transactions
+### Analyze Data
 
 ```
-Prompt: "Create 1000 sales transactions with date, product name, quantity, unit price, and total amount"
+You: analyze my last file
+AI: 🔍 Analyzing customers_20251031_143022.csv...
+    [Shows detailed analysis with insights]
+
+You: show patterns in sales.json
+AI: [Provides pattern analysis and recommendations]
 ```
 
-### Generate Time-Series Data
+### Configure Settings
 
 ```
-Prompt: "Generate hourly temperature readings for a week with timestamp, temperature in Celsius, and humidity percentage"
+You: use JSON as default format
+AI: ✅ Default format set to JSON
+
+You: set default rows to 100
+AI: ✅ Default rows set to 100
 ```
 
-### Using Pattern Data
+### File Operations
 
 ```
-You: Generate data similar to this CSV file
-Agent: Please provide the path to your sample data file:
-You: /path/to/sample.csv
-Agent: Pattern data analyzed successfully! Found 5 fields in your sample data.
-Ready to generate matching data?
+You: show my files
+AI: [Displays table of all generated files]
+
+You: delete old_customers.csv
+AI: ✅ Deleted old_customers.csv
 ```
 
-## Supported Field Types
+## 📊 Supported Formats
 
-The agent automatically recognizes and generates appropriate data for:
+| Format | Extension | Best For |
+|--------|-----------|----------|
+| **CSV** | `.csv` | Spreadsheets, simple tables, data analysis |
+| **JSON** | `.json` | APIs, web data, nested structures |
+| **Excel** | `.xlsx` | Business reports, formatted spreadsheets |
+| **Parquet** | `.parquet` | Big data, analytics pipelines, data warehouses |
+| **XML** | `.xml` | Legacy systems, configuration files |
+| **TXT** | `.txt` | Plain text, lists, notes |
+| **PDF** | `.pdf` | Professional documents, reports, essays |
+| **Word (DOCX)** | `.docx` | Editable documents, articles, letters |
 
-- **Personal Info**: names, emails, phone numbers, addresses
-- **Locations**: cities, states, countries, zip codes
-- **Dates & Times**: dates, timestamps, time ranges
-- **Business**: company names, job titles
-- **Internet**: URLs, usernames, domains
-- **Financial**: currency codes, amounts
-- **Text**: descriptions, sentences, paragraphs
-- **IDs**: UUIDs, custom IDs
-- **Numeric**: integers, floats with ranges
+### 📄 Document Modes (PDF & Word)
 
-## Output Formats
+**Paragraph Mode (Default)** - Natural flowing text
+- Perfect for essays, articles, reports, biographies
+- Creates formatted paragraphs with proper flow
+- Example: "create a PDF document about artificial intelligence"
 
-Currently supported formats:
-- **CSV**: Comma-separated values with configurable delimiter
-- **JSON**: JSON arrays with configurable formatting
-- **Excel (XLSX)**: Microsoft Excel workbooks
-- **Parquet**: Apache Parquet columnar format
-- **XML**: Extensible Markup Language
-- **SQL**: SQL INSERT statements with table creation
-- **Avro**: Apache Avro binary format
+**Table Mode** - Structured data grid
+- Perfect for data records, spreadsheets, catalogs
+- Creates tables with headers and rows
+- Example: "create a PDF table with employee records"
+- Trigger words: "table", "tabular", "spreadsheet", "grid"
 
-Coming soon:
-- PDF reports
-- Word documents
+## 🎯 Key Features
 
-## Architecture
+### 🗣️ Natural Language Interface
+- **No commands to learn** - Just chat naturally
+- **Intent recognition** - AI understands what you want
+- **Multi-turn conversations** - Context-aware interactions
+- **Smart defaults** - Remembers your preferences
 
-The tool is built exclusively on Claude Agent SDK with custom MCP tools:
+### 📊 Intelligent Data Generation
+- **Semantic field detection** - Auto-generates emails, names, addresses, phone numbers
+- **Realistic data** - Uses AI to create meaningful, varied content
+- **Custom specifications** - Describe exactly what you need
+- **Flexible row counts** - From 1 to millions of records
 
+### 📄 Document Generation (NEW)
+- **Essay/article generation** - Creates real paragraph content, not data rows
+- **PDF reports** - Professional formatting with titles and metadata
+- **Word documents** - Fully editable .docx files
+- **Both modes** - Paragraph (essays) or Table (data grids)
+
+### 🧠 Context & Memory
+- **Conversation history** - Remembers what you've asked for
+- **Last file tracking** - "analyze it" refers to last generated file
+- **Preference learning** - Adapts to your default format and row count
+
+## 💡 Pro Tips
+
+### Be Specific
 ```
-synth-agent/
-├── cli/              # Command-line interface (agent command only)
-├── core/             # Core configuration and exceptions
-├── llm/              # LLM provider abstractions (used by tools)
-├── analysis/         # Requirement parsing and ambiguity detection
-├── generation/       # Data generation engine
-├── formats/          # Output format handlers
-└── agent/            # Claude Agent SDK integration
-    ├── tools.py      # Custom MCP tools (skills)
-    ├── client.py     # SynthAgentClient wrapper
-    ├── hooks.py      # Lifecycle hooks
-    └── state.py      # Thread-safe state management
+❌ "create data"
+✅ "create 100 customer records with name, email, phone, and address"
 ```
 
-### Agent Tools (Skills)
+### Use Natural Language
+```
+✅ "I need 50 products"
+✅ "make an Excel file with sales data"
+✅ "generate a PDF about Python programming"
+✅ "create quiz questions for students"
+```
 
-The agent module provides custom tools as in-process MCP servers:
+### Leverage Context
+```
+You: create customer data
+AI: ✅ Generated customers.csv
 
-1. **analyze_requirements**: Extracts structured specifications from natural language
-2. **detect_ambiguities**: Identifies unclear requirements and generates questions
-3. **analyze_pattern**: Analyzes sample data for pattern matching
-4. **generate_data**: Generates synthetic data based on requirements
-5. **export_data**: Exports data to various formats
-6. **list_formats**: Lists available export formats
+You: analyze it  # AI knows you mean customers.csv
+AI: 🔍 Analyzing customers.csv...
+```
 
-## Development
+### Specify Format When Needed
+```
+You: create employee records in JSON format
+You: make a Word document about climate change
+You: generate a PDF table with inventory
+```
+
+## 🏗️ Architecture
+
+The tool is built with two modes:
+
+### 1. NLP Chat Mode (Default) - NEW ✨
+Pure conversational AI interface:
+- Intent classification via Claude API
+- Context-aware conversations
+- Direct data generation
+- File operations and analysis
+
+### 2. Agent SDK Mode (Advanced)
+Claude Agent SDK with custom MCP tools:
+- Custom tools for data generation
+- Pattern analysis capabilities
+- Advanced hooks system
+- Thread-safe state management
+
+## 🔧 Development
 
 ### Running Tests
 
 ```bash
-pytest tests/
+# Run all tests
+pytest
+
+# With coverage
+pytest --cov=synth_agent
+
+# Specific test file
+pytest tests/test_nlp_app.py
 ```
 
 ### Code Quality
@@ -314,87 +246,101 @@ ruff src/
 mypy src/
 ```
 
-## Troubleshooting
+## 📖 Full Documentation
+
+For comprehensive documentation including:
+- Detailed NLP chat examples
+- Format specifications
+- Document generation modes
+- Advanced usage patterns
+- API reference
+
+See: [NLP_CHAT_README.md](NLP_CHAT_README.md)
+
+## 🐛 Troubleshooting
 
 ### API Key Not Found
 
-**Error**: `Anthropic API key not found`
+**Error**: `ANTHROPIC_API_KEY not found`
 
-**Solution**: Set the ANTHROPIC_API_KEY environment variable:
+**Solution**: Create a `.env` file:
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-your-key-here"
+ANTHROPIC_API_KEY=your-api-key-here
 ```
-
-Or add it to your `.env` file.
 
 ### Import Errors
 
 **Error**: `ModuleNotFoundError`
 
-**Solution**: Install in editable mode:
+**Solution**: Install dependencies:
 ```bash
 pip install -e .
 ```
 
-### Agent SDK Issues
+### PDF/Word Generation Issues
 
-**Error**: Issues with Claude Agent SDK
+**Error**: Issues generating PDF or Word documents
 
-**Solution**: Ensure you have the latest version:
+**Solution**: Ensure libraries are installed:
 ```bash
-pip install --upgrade claude-agent-sdk
+pip install reportlab python-docx
 ```
 
-## Roadmap
+## 🗺️ Roadmap
 
-### Phase 1 (Complete) - ✅
-- [x] Claude Agent SDK integration
-- [x] Custom MCP tools for data generation
-- [x] Requirement parsing and ambiguity detection
-- [x] CSV, JSON, and Parquet output
-- [x] Thread-safe state management
-- [x] Hooks system for lifecycle events
+### ✅ Completed
+- [x] Complete NLP chat interface
+- [x] 8 output formats (CSV, JSON, Excel, Parquet, XML, TXT, PDF, DOCX)
+- [x] Document generation with paragraph and table modes
+- [x] Intent classification and context memory
+- [x] File operations and analysis
+- [x] Smart format detection
 
-### Phase 2 (Current)
-- [x] Pattern data analysis implementation
-- [ ] Enhanced semantic field detection
-- [ ] Relationship and constraint handling
-- [ ] Additional output formats (XML, Avro)
+### 🚧 In Progress
+- [ ] Comprehensive test coverage for NLP features
+- [ ] Enhanced error handling and recovery
+- [ ] Performance optimizations
 
-### Phase 3 (Future)
-- [ ] Time-series data generation
-- [ ] Relational dataset generation with foreign keys
-- [ ] Cloud storage integration (S3, GCS, Azure)
-- [ ] Data quality metrics and validation
-- [ ] Custom generator plugins
+### 📅 Future
+- [ ] Multi-language support
+- [ ] Custom templates for documents
+- [ ] Batch generation from files
+- [ ] Cloud storage integration
+- [ ] Web interface
+- [ ] API endpoints
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please:
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add tests
-5. Submit a pull request
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
-## License
+## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-- Built exclusively with [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python)
-- CLI interface with [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/)
-- LLM integration via [Anthropic](https://anthropic.com/)
-- Data generation powered by [Faker](https://faker.readthedocs.io/) and [Mimesis](https://mimesis.name/)
+- Built with [Anthropic Claude](https://anthropic.com/) API
+- CLI framework: [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/)
+- PDF generation: [ReportLab](https://www.reportlab.com/)
+- Word documents: [python-docx](https://python-docx.readthedocs.io/)
+- Data processing: [Pandas](https://pandas.pydata.org/)
 
-## Support
+## 💬 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/synthetic-data-generator/issues)
-- **Documentation**: [Full Documentation](https://github.com/yourusername/synthetic-data-generator/docs)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/synthetic-data-generator/discussions)
+- **Issues**: [GitHub Issues](https://github.com/ksmuvva/Synthetic-data-generator/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ksmuvva/Synthetic-data-generator/discussions)
+- **Email**: Support via GitHub
 
 ---
 
-**Note**: This tool uses LLM APIs which may incur costs. Monitor your API usage and set appropriate rate limits.
+**Made with ❤️ and 🤖 AI - No commands to remember, just chat!**
+
+⭐ Star us on GitHub if you find this useful!
