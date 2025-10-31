@@ -4,16 +4,15 @@ An intelligent CLI agent powered by Large Language Models (LLMs) that generates 
 
 ## Features
 
+- **Claude Agent SDK Integration**: Built exclusively on Claude Agent SDK for intelligent conversations
 - **Natural Language Interface**: Describe your data needs in plain English
 - **Intelligent Ambiguity Resolution**: AI agent asks clarifying questions to understand your requirements
 - **Pattern-Based Generation**: Optionally provide sample data to match distributions and patterns
-- **Multiple Output Formats**: CSV, JSON, Excel, Parquet, XML, SQL, Avro, and more
+- **Multiple Output Formats**: CSV, JSON, Parquet, and more
 - **Semantic Data Generation**: Automatically detects field types (emails, names, addresses, etc.)
-- **Session Persistence**: Resume conversations and save configurations
-- **Multiple LLM Providers**: OpenAI (GPT-4) and Anthropic (Claude) support
-- **🆕 Claude Agent SDK Integration**: Enhanced conversational interface with custom tools (skills)
-- **🆕 Advanced Hooks System**: Deterministic processing at specific points in the agent loop
-- **🆕 In-Process MCP Servers**: Custom tools run directly within Python without subprocess overhead
+- **Custom MCP Tools**: Specialized tools for data generation as in-process MCP servers
+- **Advanced Hooks System**: Deterministic processing at specific points in the agent loop
+- **Thread-Safe State Management**: Share data between tool calls with automatic cleanup
 
 ## Installation
 
@@ -47,13 +46,9 @@ pip install -e ".[dev]"
 
 ### API Keys
 
-Set up your LLM provider API key:
+Set up your Anthropic API key for Claude Agent SDK:
 
 ```bash
-# For OpenAI
-export OPENAI_API_KEY="sk-your-openai-key-here"
-
-# For Anthropic
 export ANTHROPIC_API_KEY="sk-ant-your-anthropic-key-here"
 ```
 
@@ -61,80 +56,40 @@ Or create a `.env` file:
 
 ```bash
 cp .env.example .env
-# Edit .env and add your API keys
-```
-
-### Configuration File
-
-Create a custom configuration file (optional):
-
-```yaml
-# my-config.yaml
-llm:
-  provider: openai
-  model: gpt-4
-  temperature: 0.7
-
-generation:
-  default_rows: 1000
-  quality_level: high
-
-storage:
-  default_output_dir: ./output
+# Edit .env and add your Anthropic API key
 ```
 
 ## Usage
 
-### Basic Usage
+### Basic Usage - Claude Agent SDK
 
-Start an interactive session:
-
-```bash
-synth-agent generate
-```
-
-The agent will guide you through:
-1. Describing your data requirements
-2. Resolving any ambiguities
-3. Selecting output format
-4. Optionally providing pattern data
-5. Generating and exporting your data
-
-### Command-Line Options
+Start an interactive agent session:
 
 ```bash
-# Specify LLM provider
-synth-agent generate --provider openai --model gpt-4
-
-# Use custom configuration file
-synth-agent generate --config ./my-config.yaml
-
-# Set output directory
-synth-agent generate --output ./my-data
-
-# Enable verbose mode
-synth-agent generate --verbose
-```
-
-### 🆕 Claude Agent SDK Mode
-
-Use the enhanced agent mode with Claude Agent SDK for better tool integration:
-
-```bash
-# Start agent session
+# Interactive mode
 synth-agent agent
 
 # With initial prompt
 synth-agent agent --prompt "Generate 100 customer records with name and email"
 
-# With custom configuration
-synth-agent agent --config config/agent_config.yaml
+# Specify output directory
+synth-agent agent --output ./data
 
 # With verbose output
 synth-agent agent --verbose
+
+# Combined options
+synth-agent agent -p "Create sales data" -o ./output -v
 ```
 
-**Agent Mode Features:**
+### Command Options
+
+- `--prompt, -p`: Initial prompt for the agent
+- `--output, -o`: Output directory for generated data
+- `--verbose, -v`: Enable verbose output with tool usage logging
+- `--config, -c`: Path to configuration file (optional)
+
+### Agent Features
 - **Custom Tools (Skills)**: Specialized tools for data generation
   - `analyze_requirements`: Extract structured specs from natural language
   - `detect_ambiguities`: Identify unclear requirements
@@ -146,18 +101,7 @@ synth-agent agent --verbose
 - **Bidirectional Conversations**: Interactive, stateful conversations
 - **Hooks System**: Pre/post processing at specific stages
 - **Enhanced Error Handling**: Better error messages and recovery
-
-**Installation Requirements for Agent Mode:**
-```bash
-# Install Node.js (if not already installed)
-# Then install Claude Code CLI
-npm install -g @anthropic-ai/claude-code
-
-# Install Python dependencies
-pip install -e .
-```
-
-**See the [Agent SDK Guide](docs/AGENT_SDK_GUIDE.md) for detailed documentation.**
+- **Thread-Safe State Management**: Share data between tool calls with automatic cleanup
 
 ## Claude Agent SDK Compliance
 
@@ -214,37 +158,50 @@ All tests should pass, confirming:
 ### Example Session
 
 ```
-$ synth-agent generate
+$ synth-agent agent
 
-Describe the data you'd like to generate:
+# Synthetic Data Generator v0.1.0
+
+An intelligent CLI agent for generating high-quality synthetic datasets.
+
+Powered by Claude Agent SDK with custom tools for natural language
+data generation, ambiguity resolution, and multi-format export.
+
+Starting Claude Agent SDK mode...
+
+Describe the data you'd like to generate. For example:
+  - 'Generate 1000 customer records with name, email, and age'
+  - 'Create a sales dataset with date, product, quantity, and price'
+  - 'I need user data with authentication details'
+
 You: Generate 100 customer records with name, email, age, and purchase history
 
-Agent: I have a few questions to help generate accurate data:
-
-1. What format would you like for the purchase history?
-   Context: Purchase history could be a count, list of items, or detailed transactions
-   Examples: simple count, array of product names, detailed transaction objects
+Agent: I'll help you generate customer records. I notice "purchase history" could be
+interpreted in different ways. Let me clarify: would you like the purchase history as:
+1. A simple count of total purchases
+2. An array of product names
+3. Detailed transaction objects with dates and amounts
 
 You: Keep it simple - just a count of purchases
 
-Agent: Perfect! Here's what I understood:
-- Data Type: Customer records
-- Fields: name (string), email (string), age (integer), purchase_count (integer)
-- Size: 100 records
+Agent: Perfect! I'll generate 100 customer records with:
+- name (full name)
+- email (email address)
+- age (integer)
+- purchase_count (integer representing total purchases)
 
-What output format would you like? (csv, json)
-You: csv
+I'll create this data in CSV format and save it to the output directory.
 
-Agent: Great! I'll generate the data in CSV format.
-Do you have sample/pattern data that I should match? (yes/no)
-You: no
+*Generating data...*
 
-Agent: Ready to generate? (yes to proceed)
-You: yes
+Success! Generated 100 rows of synthetic customer data.
+Output saved to: ./output/synthetic_customers_20241031.csv
 
-Agent: Success! Generated 100 rows of synthetic data.
-Output saved to: ./output/synthetic_data_20241029_153045.csv
-Fields: name, email, age, purchase_count
+Continue the conversation (type 'exit' to quit):
+
+You: exit
+
+Agent session completed!
 ```
 
 ## Examples
@@ -306,58 +263,23 @@ Coming soon:
 - PDF reports
 - Word documents
 
-## Configuration Options
-
-### LLM Configuration
-
-```yaml
-llm:
-  provider: openai  # openai, anthropic
-  model: gpt-4
-  temperature: 0.7
-  max_tokens: 2000
-  timeout: 30
-  max_retries: 4
-  enable_cache: true
-```
-
-### Generation Configuration
-
-```yaml
-generation:
-  default_rows: 1000
-  quality_level: high  # low, medium, high
-  null_percentage: 0.05
-  use_semantic_analysis: true
-  infer_relationships: true
-```
-
-### Security & Privacy
-
-```yaml
-security:
-  send_pattern_data_to_llm: false  # Don't send sensitive data to LLM
-  anonymize_before_llm: true
-  local_only_mode: false
-  max_file_size_mb: 500
-```
-
 ## Architecture
+
+The tool is built exclusively on Claude Agent SDK with custom MCP tools:
 
 ```
 synth-agent/
-├── cli/              # Command-line interface
+├── cli/              # Command-line interface (agent command only)
 ├── core/             # Core configuration and exceptions
-├── llm/              # LLM provider abstractions
-├── conversation/     # Conversation flow management
+├── llm/              # LLM provider abstractions (used by tools)
 ├── analysis/         # Requirement parsing and ambiguity detection
 ├── generation/       # Data generation engine
 ├── formats/          # Output format handlers
-├── storage/          # Session and data storage
-└── agent/            # 🆕 Claude Agent SDK integration
-    ├── tools.py      # Custom tools (skills)
-    ├── client.py     # Agent client wrapper
-    └── hooks.py      # Hooks system
+└── agent/            # Claude Agent SDK integration
+    ├── tools.py      # Custom MCP tools (skills)
+    ├── client.py     # SynthAgentClient wrapper
+    ├── hooks.py      # Lifecycle hooks
+    └── state.py      # Thread-safe state management
 ```
 
 ### Agent Tools (Skills)
@@ -370,8 +292,6 @@ The agent module provides custom tools as in-process MCP servers:
 4. **generate_data**: Generates synthetic data based on requirements
 5. **export_data**: Exports data to various formats
 6. **list_formats**: Lists available export formats
-
-See `examples/agent/` for usage examples.
 
 ## Development
 
@@ -398,12 +318,14 @@ mypy src/
 
 ### API Key Not Found
 
-**Error**: `OpenAI API key not found`
+**Error**: `Anthropic API key not found`
 
-**Solution**: Set the appropriate environment variable:
+**Solution**: Set the ANTHROPIC_API_KEY environment variable:
 ```bash
-export OPENAI_API_KEY="your-key-here"
+export ANTHROPIC_API_KEY="sk-ant-your-key-here"
 ```
+
+Or add it to your `.env` file.
 
 ### Import Errors
 
@@ -414,39 +336,37 @@ export OPENAI_API_KEY="your-key-here"
 pip install -e .
 ```
 
-### LLM Timeout
+### Agent SDK Issues
 
-**Error**: `LLM request timed out`
+**Error**: Issues with Claude Agent SDK
 
-**Solution**: Increase timeout in configuration:
-```yaml
-llm:
-  timeout: 60
+**Solution**: Ensure you have the latest version:
+```bash
+pip install --upgrade claude-agent-sdk
 ```
 
 ## Roadmap
 
-### Phase 1 (MVP) - ✅ Complete
-- [x] Basic CLI interface
-- [x] OpenAI and Anthropic LLM integration
+### Phase 1 (Complete) - ✅
+- [x] Claude Agent SDK integration
+- [x] Custom MCP tools for data generation
 - [x] Requirement parsing and ambiguity detection
-- [x] CSV and JSON output
-- [x] Basic data generation
+- [x] CSV, JSON, and Parquet output
+- [x] Thread-safe state management
+- [x] Hooks system for lifecycle events
 
-### Phase 2 (Enhanced)
-- [ ] Pattern data analysis implementation
-- [ ] Additional formats (Excel, Parquet, XML)
+### Phase 2 (Current)
+- [x] Pattern data analysis implementation
 - [ ] Enhanced semantic field detection
 - [ ] Relationship and constraint handling
-- [ ] Session resume functionality
+- [ ] Additional output formats (XML, Avro)
 
-### Phase 3 (Advanced)
+### Phase 3 (Future)
 - [ ] Time-series data generation
 - [ ] Relational dataset generation with foreign keys
 - [ ] Cloud storage integration (S3, GCS, Azure)
-- [ ] PDF and Word document generation
 - [ ] Data quality metrics and validation
-- [ ] Plugin architecture for custom generators
+- [ ] Custom generator plugins
 
 ## Contributing
 
@@ -464,10 +384,10 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## Acknowledgments
 
-- Built with [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/)
-- LLM integration via [OpenAI](https://openai.com/) and [Anthropic](https://anthropic.com/)
+- Built exclusively with [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python)
+- CLI interface with [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/)
+- LLM integration via [Anthropic](https://anthropic.com/)
 - Data generation powered by [Faker](https://faker.readthedocs.io/) and [Mimesis](https://mimesis.name/)
-- Agent integration using [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk-python)
 
 ## Support
 
