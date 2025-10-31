@@ -159,6 +159,58 @@ pip install -e .
 
 **See the [Agent SDK Guide](docs/AGENT_SDK_GUIDE.md) for detailed documentation.**
 
+## Claude Agent SDK Compliance
+
+This project has been **completely rebuilt** to strictly comply with the [Claude Agent SDK framework](https://github.com/anthropics/claude-agent-sdk-python). The agent follows all SDK specifications and best practices.
+
+### Architecture Compliance
+
+✅ **MCP Server Registration**
+- Tools are properly packaged using `create_sdk_mcp_server()`
+- Server is registered with `ClaudeAgentOptions.mcp_servers` using namespace mapping
+- All tool names follow the `mcp__<namespace>__<tool_name>` format
+
+✅ **Tool Implementation**
+- All tools use the `@tool` decorator from `claude_agent_sdk`
+- Tools are async functions with proper input schemas
+- Return values follow SDK response format with `content` blocks
+- Error handling with `isError` flags
+
+✅ **Hooks System**
+- Hooks follow SDK specification with correct signatures
+- Async hooks with `(input_data, tool_use_id, context)` parameters
+- Return `HookJSONOutput` dictionaries with proper structure
+- Registered using `HookMatcher` objects
+
+✅ **State Management**
+- Thread-safe `ToolStateManager` for sharing data between tool calls
+- Session-based state with automatic cleanup
+- Support for DataFrames, requirements, and analysis results
+- TTL-based expiration for memory efficiency
+
+✅ **Client Configuration**
+- Proper `ClaudeAgentOptions` initialization
+- Correct allowed_tools list with MCP tool names
+- System prompt with tool descriptions
+- Working directory and hook configuration
+
+### SDK Compliance Testing
+
+Run the compliance test suite to verify SDK integration:
+
+```bash
+python -m pytest tests/test_agent_sdk_compliance.py -v
+```
+
+All tests should pass, confirming:
+- ✅ Tool server structure
+- ✅ Individual tool registration
+- ✅ Client initialization
+- ✅ MCP tool configuration
+- ✅ Hooks creation
+- ✅ State management
+- ✅ System prompt integration
+
 ### Example Session
 
 ```
