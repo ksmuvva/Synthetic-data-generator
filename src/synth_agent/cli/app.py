@@ -1,5 +1,5 @@
 """
-Main CLI application using Typer and Rich.
+Main CLI application using Typer and Rich - Claude Agent SDK mode only.
 """
 
 import asyncio
@@ -13,15 +13,11 @@ from rich.prompt import Prompt
 from rich.markdown import Markdown
 
 from synth_agent import __version__
-from synth_agent.conversation.manager import ConversationManager
-from synth_agent.core.config import APIKeys, Config, get_api_keys, get_config
-from synth_agent.core.exceptions import ConfigurationError, SynthAgentError
-from synth_agent.core.session import SessionManager
-from synth_agent.llm.manager import create_llm_manager
+from synth_agent.core.config import Config, ConfigurationError
 
 app = typer.Typer(
     name="synth-agent",
-    help="AI-Powered CLI Agent for Synthetic Data Generation",
+    help="AI-Powered CLI Agent for Synthetic Data Generation (Claude Agent SDK)",
     add_completion=False,
 )
 
@@ -35,8 +31,8 @@ def print_welcome() -> None:
 
 An intelligent CLI agent for generating high-quality synthetic datasets.
 
-Powered by Large Language Models (LLMs) to understand your requirements,
-resolve ambiguities, and generate realistic data in various formats.
+Powered by Claude Agent SDK with custom tools for natural language
+data generation, ambiguity resolution, and multi-format export.
 """
     console.print(Panel(Markdown(welcome_text), border_style="cyan"))
 
@@ -54,333 +50,6 @@ def print_success(message: str) -> None:
 def print_info(message: str) -> None:
     """Print info message."""
     console.print(f"[cyan]{message}[/cyan]")
-
-
-@app.command()
-def generate(
-    config_file: Optional[Path] = typer.Option(
-        None, "--config", "-c", help="Path to configuration file"
-    ),
-    provider: Optional[str] = typer.Option(
-        None, "--provider", "-p", help="LLM provider (openai, anthropic)"
-    ),
-    model: Optional[str] = typer.Option(None, "--model", "-m", help="Model name to use"),
-    output_dir: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Output directory for generated data"
-    ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
-) -> None:
-    """
-    Start an interactive session to generate synthetic data.
-
-    This command launches an AI-powered conversation to:
-    1. Understand your data requirements
-    2. Resolve any ambiguities
-    3. Select output format
-    4. Optionally analyze pattern data
-    5. Generate and export synthetic data
-    """
-    try:
-        # Print welcome
-        print_welcome()
-
-        # Load configuration
-        config_overrides = {}
-        if provider:
-            config_overrides["llm"] = {"provider": provider}
-        if model:
-            if "llm" not in config_overrides:
-                config_overrides["llm"] = {}
-            config_overrides["llm"]["model"] = model
-        if output_dir:
-            config_overrides["storage"] = {"default_output_dir": str(output_dir)}
-
-        config = get_config(config_path=config_file, **config_overrides)
-
-        if verbose:
-            print_info(f"Using LLM provider: {config.llm.provider}")
-            print_info(f"Using model: {config.llm.model}")
-
-        # Get API keys
-        api_keys = get_api_keys()
-
-        # Validate API key
-        if config.llm.provider == "openai":
-            if not api_keys.openai_api_key:
-                raise ConfigurationError(
-                    "OpenAI API key not found. Set OPENAI_API_KEY environment variable."
-                )
-            api_key = api_keys.openai_api_key
-        elif config.llm.provider == "anthropic":
-            if not api_keys.anthropic_api_key:
-                raise ConfigurationError(
-                    "Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable."
-                )
-            api_key = api_keys.anthropic_api_key
-        else:
-            raise ConfigurationError(f"Unsupported provider: {config.llm.provider}")
-
-        # Create LLM manager
-        llm_manager = create_llm_manager(config, api_key)
-
-        # Create session manager
-        session_db_path = Path(config.storage.session_dir) / config.storage.session_db
-        session_manager = SessionManager(session_db_path)
-
-        # Create conversation manager
-        conversation = ConversationManager(llm_manager, config, session_manager)
-
-        # Start interactive session
-        console.print(
-            "\n[bold cyan]Let's create some synthetic data![/bold cyan]\n"
-        )
-        console.print(
-            "Describe the data you'd like to generate. For example:\n"
-            "  - 'Generate 1000 customer records with name, email, and age'\n"
-            "  - 'Create a sales dataset with date, product, quantity, and price'\n"
-            "  - 'I need user data with authentication details'\n"
-        )
-
-        # Get initial input
-        user_input = Prompt.ask("\n[bold]You[/bold]")
-
-        # Run conversation loop
-        asyncio.run(conversation_loop(conversation, user_input))
-
-    except ConfigurationError as e:
-        print_error(str(e))
-        raise typer.Exit(1)
-    except KeyboardInterrupt:
-        console.print("\n\n[yellow]Conversation interrupted by user.[/yellow]")
-        raise typer.Exit(0)
-    except Exception as e:
-        print_error(f"Unexpected error: {e}")
-        if verbose:
-            console.print_exception()
-        raise typer.Exit(1)
-
-
-async def conversation_loop(conversation: ConversationManager, initial_input: str) -> None:
-    """
-    Run the interactive conversation loop.
-
-    Args:
-        conversation: Conversation manager
-        initial_input: Initial user input
-    """
-    current_input = initial_input
-
-    while True:
-        try:
-            # Process input
-            with console.status("[bold cyan]Thinking...[/bold cyan]"):
-                response = await conversation.process_user_input(current_input)
-
-            # Check for errors
-            if response.get("error"):
-                print_error(response["message"])
-            else:
-                # Print agent response
-                console.print(f"\n[bold magenta]Agent:[/bold magenta] {response['message']}\n")
-
-            # Check if completed
-            phase = response.get("phase")
-            if phase == "completed":
-                print_success("Data generation completed!")
-                if "output_file" in response:
-                    console.print(
-                        f"\n[bold]Output file:[/bold] [cyan]{response['output_file']}[/cyan]"
-                    )
-                    console.print(
-                        f"[bold]Rows generated:[/bold] [cyan]{response.get('row_count', 'N/A')}[/cyan]"
-                    )
-                    console.print(
-                        f"[bold]Columns:[/bold] [cyan]{', '.join(response.get('columns', []))}[/cyan]"
-                    )
-                break
-
-            # Get next input
-            current_input = Prompt.ask("\n[bold]You[/bold]")
-
-        except SynthAgentError as e:
-            print_error(str(e))
-            # Allow user to try again
-            current_input = Prompt.ask("\n[bold]You[/bold] (try again or type 'exit')")
-            if current_input.lower() in ["exit", "quit"]:
-                break
-
-        except KeyboardInterrupt:
-            console.print("\n\n[yellow]Conversation interrupted.[/yellow]")
-            break
-
-
-@app.command()
-def list_sessions(
-    config_file: Optional[Path] = typer.Option(
-        None, "--config", "-c", help="Path to configuration file"
-    ),
-    limit: int = typer.Option(20, "--limit", "-l", help="Number of recent sessions to show"),
-) -> None:
-    """
-    List all saved sessions.
-
-    Shows recent sessions with their IDs, creation times, and current phases.
-    """
-    try:
-        # Load configuration
-        config = get_config(config_path=config_file)
-
-        # Create session manager
-        session_db_path = Path(config.storage.session_dir) / config.storage.session_db
-        session_manager = SessionManager(session_db_path)
-
-        # Get sessions
-        sessions = session_manager.list_sessions(limit=limit)
-
-        if not sessions:
-            print_info("No saved sessions found.")
-            return
-
-        console.print(f"\n[bold cyan]Saved Sessions (showing {len(sessions)}):[/bold cyan]\n")
-
-        from rich.table import Table
-        table = Table(show_header=True, header_style="bold magenta")
-        table.add_column("Session ID", style="cyan")
-        table.add_column("Created", style="green")
-        table.add_column("Updated", style="yellow")
-        table.add_column("Phase", style="blue")
-        table.add_column("Requirements", style="white")
-
-        for session in sessions:
-            requirements = session.get("requirements", {})
-            req_summary = requirements.get("data_type", "N/A") if requirements else "N/A"
-
-            table.add_row(
-                session.get("session_id", "N/A")[:16] + "...",
-                session.get("created_at", "N/A")[:19],
-                session.get("updated_at", "N/A")[:19],
-                session.get("phase", "N/A"),
-                req_summary[:30] + "..." if len(req_summary) > 30 else req_summary
-            )
-
-        console.print(table)
-        console.print(f"\n[dim]Use 'synth-agent resume <session-id>' to continue a session.[/dim]\n")
-
-    except Exception as e:
-        print_error(f"Failed to list sessions: {e}")
-        raise typer.Exit(1)
-
-
-@app.command()
-def resume(
-    session_id: str = typer.Argument(..., help="Session ID to resume"),
-    config_file: Optional[Path] = typer.Option(
-        None, "--config", "-c", help="Path to configuration file"
-    ),
-    provider: Optional[str] = typer.Option(
-        None, "--provider", "-p", help="LLM provider (openai, anthropic)"
-    ),
-    model: Optional[str] = typer.Option(None, "--model", "-m", help="Model name to use"),
-    output_dir: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Output directory for generated data"
-    ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
-) -> None:
-    """
-    Resume a saved session.
-
-    Loads a previously saved session and continues the conversation
-    from where it left off.
-    """
-    try:
-        # Print welcome
-        print_welcome()
-
-        # Load configuration
-        config_overrides = {}
-        if provider:
-            config_overrides["llm"] = {"provider": provider}
-        if model:
-            if "llm" not in config_overrides:
-                config_overrides["llm"] = {}
-            config_overrides["llm"]["model"] = model
-        if output_dir:
-            config_overrides["storage"] = {"default_output_dir": str(output_dir)}
-
-        config = get_config(config_path=config_file, **config_overrides)
-
-        if verbose:
-            print_info(f"Using LLM provider: {config.llm.provider}")
-            print_info(f"Using model: {config.llm.model}")
-
-        # Get API keys
-        api_keys = get_api_keys()
-
-        # Validate API key
-        if config.llm.provider == "openai":
-            if not api_keys.openai_api_key:
-                raise ConfigurationError(
-                    "OpenAI API key not found. Set OPENAI_API_KEY environment variable."
-                )
-            api_key = api_keys.openai_api_key
-        elif config.llm.provider == "anthropic":
-            if not api_keys.anthropic_api_key:
-                raise ConfigurationError(
-                    "Anthropic API key not found. Set ANTHROPIC_API_KEY environment variable."
-                )
-            api_key = api_keys.anthropic_api_key
-        else:
-            raise ConfigurationError(f"Unsupported provider: {config.llm.provider}")
-
-        # Create LLM manager
-        llm_manager = create_llm_manager(config, api_key)
-
-        # Create session manager
-        session_db_path = Path(config.storage.session_dir) / config.storage.session_db
-        session_manager = SessionManager(session_db_path)
-
-        # Load session
-        print_info(f"Loading session: {session_id[:16]}...")
-        session_data = session_manager.load_session(session_id)
-
-        if not session_data:
-            print_error(f"Session not found: {session_id}")
-            raise typer.Exit(1)
-
-        # Create conversation manager with loaded session
-        conversation = ConversationManager(llm_manager, config, session_manager)
-        conversation.load_from_session(session_data)
-
-        print_success(f"Session resumed from phase: {session_data.get('phase', 'unknown')}")
-
-        # Show conversation history summary
-        history = session_data.get("conversation_history", [])
-        if history:
-            console.print(f"\n[dim]Previous conversation ({len(history)} messages):[/dim]")
-            for msg in history[-3:]:  # Show last 3 messages
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")[:100]
-                console.print(f"  [dim]{role}:[/dim] {content}...")
-
-        console.print("\n[bold cyan]Continue the conversation:[/bold cyan]\n")
-
-        # Get user input
-        user_input = Prompt.ask("\n[bold]You[/bold]")
-
-        # Run conversation loop
-        asyncio.run(conversation_loop(conversation, user_input))
-
-    except ConfigurationError as e:
-        print_error(str(e))
-        raise typer.Exit(1)
-    except KeyboardInterrupt:
-        console.print("\n\n[yellow]Conversation interrupted by user.[/yellow]")
-        raise typer.Exit(0)
-    except Exception as e:
-        print_error(f"Unexpected error: {e}")
-        if verbose:
-            console.print_exception()
-        raise typer.Exit(1)
 
 
 @app.command()
@@ -405,9 +74,14 @@ def agent(
     - Detect and resolve ambiguities
     - Analyze pattern data
     - Generate synthetic data
-    - Export to various formats
+    - Export to various formats (CSV, JSON, Parquet)
 
-    The agent mode provides better tool integration and more flexible conversations.
+    The Claude Agent SDK provides intelligent tool integration and flexible conversations.
+
+    Examples:
+        synth-agent agent --prompt "Generate 1000 customer records"
+        synth-agent agent -p "Create sales data with products and prices"
+        synth-agent agent --output ./data --verbose
     """
     try:
         # Print welcome
@@ -421,19 +95,12 @@ def agent(
         if output_dir:
             config_overrides["storage"] = {"default_output_dir": str(output_dir)}
 
-        config = get_config(config_path=config_file, **config_overrides)
+        # Create config - now using the SDK Config
+        config = Config()
 
         if verbose:
             print_info("Claude Agent SDK mode enabled")
-            print_info("Custom tools: analyze_requirements, detect_ambiguities, generate_data, export_data")
-
-        # Import agent components
-        from synth_agent.agent import SynthAgentClient
-        from synth_agent.core.config import Config
-
-        # Convert old config to new Config format
-        app_config = Config()
-        # Note: In production, you'd want to properly map the old config to the new one
+            print_info("Custom tools: analyze_requirements, detect_ambiguities, analyze_pattern, generate_data, export_data")
 
         # Get initial prompt
         if prompt:
@@ -448,7 +115,7 @@ def agent(
             initial_prompt = Prompt.ask("\n[bold]You[/bold]")
 
         # Run agent session
-        asyncio.run(agent_loop(app_config, initial_prompt, verbose))
+        asyncio.run(agent_loop(config, initial_prompt, verbose))
 
     except ConfigurationError as e:
         print_error(str(e))
@@ -463,7 +130,7 @@ def agent(
         raise typer.Exit(1)
 
 
-async def agent_loop(config: "AppConfig", initial_prompt: str, verbose: bool = False) -> None:
+async def agent_loop(config: Config, initial_prompt: str, verbose: bool = False) -> None:
     """
     Run the Claude Agent SDK loop.
 
@@ -544,7 +211,7 @@ async def agent_loop(config: "AppConfig", initial_prompt: str, verbose: bool = F
 @app.command()
 def version() -> None:
     """Show version information."""
-    console.print(f"Synthetic Data Generator v{__version__}")
+    console.print(f"Synthetic Data Generator v{__version__} (Claude Agent SDK)")
 
 
 @app.command()
@@ -553,48 +220,56 @@ def info() -> None:
     info_text = f"""
 # Synthetic Data Generator v{__version__}
 
-An AI-powered CLI agent for generating synthetic data.
+An AI-powered CLI agent for generating synthetic data using Claude Agent SDK.
 
 ## Features
-- Natural language requirement capture
+- Natural language requirement understanding via Claude Agent SDK
 - Intelligent ambiguity detection and resolution
-- Pattern-based data generation
-- Multiple output formats (CSV, JSON)
-- Session persistence
+- Pattern-based data generation from examples
+- Multiple output formats (CSV, JSON, Parquet)
+- Custom MCP tools for synthetic data operations
 
-## Supported LLM Providers
-- OpenAI (GPT-4, GPT-3.5)
-- Anthropic (Claude 3.5 Sonnet, Claude 3 Opus)
+## Architecture
+Built on Claude Agent SDK with custom MCP tools:
+- **analyze_requirements**: Parse natural language to structured requirements
+- **detect_ambiguities**: Find unclear aspects in requirements
+- **analyze_pattern**: Learn from example data files
+- **generate_data**: Create synthetic data matching requirements
+- **export_data**: Save data in various formats
+- **list_formats**: Show available export formats
 
 ## Configuration
-Configuration via:
-1. CLI flags (highest priority)
-2. Environment variables
-3. Config file (YAML)
-4. Default values
+The agent uses Claude API via the Claude Agent SDK.
 
 ## Environment Variables
-- OPENAI_API_KEY: OpenAI API key
-- ANTHROPIC_API_KEY: Anthropic API key
-- SYNTH_AGENT_LLM_PROVIDER: LLM provider
-- SYNTH_AGENT_OUTPUT_DIR: Output directory
+- **ANTHROPIC_API_KEY**: Anthropic API key (required)
+- **SYNTH_AGENT_OUTPUT_DIR**: Output directory for generated data
 
 ## Examples
 ```bash
-# Basic usage
-synth-agent generate
+# Interactive mode
+synth-agent agent
 
-# Specify provider and model
-synth-agent generate --provider openai --model gpt-4
-
-# Use custom config file
-synth-agent generate --config ./my-config.yaml
+# With initial prompt
+synth-agent agent --prompt "Generate 1000 customer records with name, email, and age"
 
 # Specify output directory
-synth-agent generate --output ./data
+synth-agent agent --output ./data --verbose
+
+# Full example
+synth-agent agent -p "Create a sales dataset with date, product, quantity, and price" -o ./output -v
 ```
 
-For more information, visit: https://github.com/yourusername/synthetic-data-generator
+## Advanced Usage
+The agent can:
+- Understand complex multi-field requirements
+- Ask clarifying questions when requirements are ambiguous
+- Learn patterns from sample CSV/JSON files
+- Generate data with realistic distributions
+- Handle nested JSON structures and complex data types
+- Export to multiple formats simultaneously
+
+For more information, visit: https://github.com/ksmuvva/Synthetic-data-generator
 """
     console.print(Panel(Markdown(info_text), border_style="cyan"))
 
