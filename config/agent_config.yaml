@@ -1,0 +1,91 @@
+# Claude Agent SDK Configuration for Synthetic Data Generator
+# This configuration file defines settings for the agent mode
+
+agent:
+  # System prompt for the agent
+  system_prompt: |
+    You are an AI assistant specialized in synthetic data generation.
+
+    Your role is to help users generate high-quality synthetic datasets by:
+    1. Understanding their data requirements through natural conversation
+    2. Detecting and resolving ambiguities in specifications
+    3. Analyzing sample data patterns when provided
+    4. Generating realistic synthetic data
+    5. Exporting data in various formats
+
+    Always be helpful, precise, and thorough in assisting with data generation tasks.
+
+  # Allowed standard tools (Read, Write, Bash, etc.)
+  allowed_tools:
+    - Read
+    - Write
+    - Bash
+    - Glob
+    - Grep
+
+  # Custom tools (automatically registered via MCP servers SDK)
+  custom_tools:
+    - analyze_requirements
+    - detect_ambiguities
+    - analyze_pattern
+    - generate_data
+    - export_data
+    - list_formats
+
+  # Working directory for file operations
+  working_directory: "./output"
+
+  # Hooks configuration
+  hooks:
+    enable_pre_query: true
+    enable_post_query: true
+    enable_pre_tool: true
+    enable_post_tool: true
+    enable_on_error: true
+
+# Tool-specific settings
+tools:
+  analyze_requirements:
+    confidence_threshold: 0.7
+    max_fields: 50
+
+  detect_ambiguities:
+    default_confidence_threshold: 0.7
+    max_questions: 5
+
+  generate_data:
+    default_rows: 100
+    max_rows: 10000
+    enable_seed: true
+
+  export_data:
+    default_format: csv
+    allowed_formats:
+      - csv
+      - json
+      - excel
+      - parquet
+      - xml
+      - sql
+      - avro
+
+# Generation settings
+generation:
+  quality_level: high
+  null_percentage: 0.05
+  duplicate_percentage: 0.02
+  enable_constraints: true
+  enable_pattern_matching: true
+
+# Output settings
+output:
+  default_directory: "./output"
+  create_subdirectories: true
+  timestamp_files: true
+  include_metadata: true
+
+# Logging settings
+logging:
+  level: INFO
+  enable_tool_logging: true
+  enable_metrics: true
