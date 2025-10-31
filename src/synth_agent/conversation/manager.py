@@ -385,6 +385,41 @@ class ConversationManager:
 
         self.session_manager.save_session(state)
 
+    def load_from_session(self, session_data: Dict[str, Any]) -> None:
+        """
+        Load state from a saved session.
+
+        Args:
+            session_data: Session data dictionary from SessionManager
+        """
+        self.session_id = session_data.get("session_id", str(uuid.uuid4()))
+        phase_value = session_data.get("phase", "initial")
+
+        # Convert phase string to enum
+        try:
+            self.phase = ConversationPhase(phase_value)
+        except ValueError:
+            logger.warning(f"Invalid phase value: {phase_value}, defaulting to INITIAL")
+            self.phase = ConversationPhase.INITIAL
+
+        self.requirements = session_data.get("requirements", {})
+        self.format_config = session_data.get("format_config", {})
+        self.pattern_data = session_data.get("pattern_data")
+        self.conversation_history = session_data.get("conversation_history", [])
+
+        # Parse datetime
+        created_at_str = session_data.get("created_at")
+        if created_at_str:
+            try:
+                self.created_at = datetime.fromisoformat(created_at_str)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid created_at value: {created_at_str}, using current time")
+                self.created_at = datetime.now()
+        else:
+            self.created_at = datetime.now()
+
+        logger.info(f"Loaded session {self.session_id[:16]}... from phase: {self.phase.value}")
+
     def get_session_summary(self) -> Dict[str, Any]:
         """Get summary of current session."""
         return {
