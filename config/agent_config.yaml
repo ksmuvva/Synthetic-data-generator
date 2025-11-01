@@ -31,6 +31,30 @@ agent:
     - generate_data
     - export_data
     - list_formats
+    - select_reasoning_strategy
+    - list_reasoning_methods
+    - deep_analyze_pattern
+    - generate_with_modes
+    - validate_quality
+    - list_generation_modes
+
+  # Claude Skills
+  skills:
+    # Built-in Anthropic Skills
+    built_in:
+      - xlsx  # Excel spreadsheet operations
+      - pdf   # PDF document operations
+      - docx  # Word document operations
+      - pptx  # PowerPoint presentation operations
+
+    # Custom Skills
+    custom:
+      - data-validation      # Advanced data quality validation
+      - statistical-analysis # Deep statistical pattern recognition
+      - data-visualization   # Charts, graphs, and visual reports
+      - schema-inference     # Automatic schema and type detection
+      - privacy-checker      # PII detection and privacy compliance
+      - relational-mapper    # Multi-table relationship handling
 
   # Working directory for file operations
   working_directory: "./output"
@@ -89,3 +113,93 @@ logging:
   level: INFO
   enable_tool_logging: true
   enable_metrics: true
+
+# Skills configuration
+skills:
+  # Data Validation Skill
+  data_validation:
+    enabled: true
+    strict_mode: false
+    fail_on_warning: false
+    max_violations_to_report: 100
+    quality_threshold: 0.85
+    check_data_leakage: true
+    check_pii_exposure: true
+
+  # Statistical Analysis Skill
+  statistical_analysis:
+    enabled: true
+    distribution_tests:
+      - normal
+      - exponential
+      - uniform
+      - poisson
+      - gamma
+      - beta
+    significance_level: 0.05
+    correlation_threshold: 0.7
+    outlier_method: "isolation_forest"
+    max_sample_size: 100000
+    enable_time_series: true
+    enable_multivariate: true
+
+  # Data Visualization Skill
+  data_visualization:
+    enabled: true
+    default_format: "html"
+    dpi: 300
+    figure_size: [12, 8]
+    style: "seaborn"
+    theme: "default"
+    interactive: true
+    save_static_copies: true
+    output_directory: "output/visualizations"
+
+  # Schema Inference Skill
+  schema_inference:
+    enabled: true
+    confidence_threshold: 0.8
+    sample_size: 1000
+    enable_semantic_detection: true
+    enable_constraint_inference: true
+    enable_relationship_detection: true
+
+  # Privacy Checker Skill
+  privacy_checker:
+    enabled: true
+    pii_detection:
+      enabled: true
+      confidence_threshold: 0.8
+      check_field_names: true
+      check_field_values: true
+    anonymization:
+      default_method: "pseudonymization"
+      preserve_distributions: true
+    privacy_metrics:
+      k_anonymity_threshold: 5
+      l_diversity_threshold: 3
+      t_closeness_threshold: 0.2
+    compliance:
+      check_gdpr: true
+      check_hipaa: false
+      check_ccpa: false
+
+  # Relational Mapper Skill
+  relational_mapper:
+    enabled: true
+    relationship_detection:
+      enabled: true
+      confidence_threshold: 0.8
+      check_naming_patterns: true
+      check_value_overlap: true
+    generation:
+      maintain_referential_integrity: true
+      use_transactions: true
+      batch_size: 1000
+    cardinality:
+      one_to_many_avg: 3
+      many_to_many_avg: 5
+    export:
+      include_foreign_keys: true
+      include_indexes: true
+      include_constraints: true
