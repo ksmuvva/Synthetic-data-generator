@@ -23,6 +23,9 @@ from ..utils.helpers import extract_json_from_text
 from .state import get_state_manager
 from ..reasoning.engine import ReasoningEngine
 from ..reasoning.strategy_selector import StrategySelector
+from ..analysis.deep_pattern_analyzer import DeepPatternAnalyzer
+from ..validation.quality_validator import QualityValidator
+from ..generation.modes import GenerationMode, GenerationModeConfig, ModeAwareGenerator
 
 import structlog
 
@@ -789,12 +792,537 @@ async def list_reasoning_methods_tool(args: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
+@tool(
+    name="deep_analyze_pattern",
+    description="Deeply analyzes uploaded document with extended reasoning to extract comprehensive pattern blueprint including schema, statistics, business rules, constraints, and generation strategy. Supports CSV, JSON, Excel, TXT, PDF, and Markdown files.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "Path to pattern document file"
+            },
+            "analysis_depth": {
+                "type": "string",
+                "enum": ["shallow", "deep", "comprehensive"],
+                "description": "Depth of analysis (default: deep)"
+            },
+            "session_id": {
+                "type": "string",
+                "description": "Optional session ID for tracking"
+            }
+        },
+        "required": ["file_path"],
+    },
+)
+async def deep_analyze_pattern_tool(args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Deeply analyze pattern document with extended reasoning.
+
+    Args:
+        file_path: Path to pattern document
+        analysis_depth: Depth of analysis (shallow, deep, comprehensive)
+        session_id: Optional session ID
+
+    Returns:
+        Comprehensive pattern blueprint with reasoning steps
+    """
+    try:
+        file_path = args.get("file_path", "")
+        analysis_depth = args.get("analysis_depth", "deep")
+        session_id = _get_session_id(args)
+
+        if not file_path:
+            raise ValueError("file_path is required")
+
+        logger.info("Deep analyzing pattern", session_id=session_id, file_path=file_path, depth=analysis_depth)
+
+        # Initialize configuration
+        config = Config()
+
+        # Initialize deep pattern analyzer
+        analyzer = DeepPatternAnalyzer(config)
+
+        # Perform deep analysis
+        blueprint = await analyzer.analyze_document(
+            file_path=file_path,
+            analysis_depth=analysis_depth,
+        )
+
+        # Store blueprint in state manager
+        state_manager = get_state_manager()
+        await state_manager.set_value(session_id, "pattern_blueprint", blueprint)
+        await state_manager.set_value(session_id, "file_path", file_path)
+
+        # Add session_id to response
+        blueprint["session_id"] = session_id
+
+        logger.info("Deep pattern analysis complete", session_id=session_id, fields=len(blueprint.get("schema", {})))
+
+        # Format user-friendly summary
+        summary = f"""
+📊 **Pattern Analysis Complete**
+
+**File:** {blueprint['file_info']['name']} ({blueprint['file_info']['size_human']})
+**Format:** {blueprint['file_info']['format'].upper()}
+**Analysis Depth:** {analysis_depth.capitalize()}
+
+**Schema Detected:**
+- Fields: {len(blueprint.get('schema', {}))}
+- Required Fields: {len(blueprint.get('constraints', {}).get('required_fields', []))}
+- Unique Fields: {len(blueprint.get('constraints', {}).get('unique_fields', []))}
+
+**Business Rules Identified:** {len(blueprint.get('business_rules', []))}
+
+**Reasoning Steps Completed:**
+{chr(10).join(f"  {i+1}. {step}" for i, step in enumerate(blueprint.get('reasoning_steps', [])))}
+
+**Session ID:** {session_id}
+
+✅ Pattern blueprint ready for data generation!
+"""
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": summary,
+                },
+                {
+                    "type": "text",
+                    "text": json.dumps(blueprint, indent=2, default=str),
+                }
+            ]
+        }
+
+    except Exception as e:
+        logger.error("Error in deep pattern analysis", error=str(e))
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Error analyzing pattern: {str(e)}",
+                }
+            ],
+            "isError": True,
+        }
+
+
+@tool(
+    name="generate_with_modes",
+    description="Generates synthetic data with reasoning-based approach and generation modes (exact_match, realistic_variant, edge_case, balanced). Uses multi-step reasoning for field generation, constraint satisfaction, and quality assurance.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "requirements": {
+                "type": "object",
+                "description": "Structured requirements with fields and constraints"
+            },
+            "num_rows": {
+                "type": "integer",
+                "description": "Number of rows to generate"
+            },
+            "mode": {
+                "type": "string",
+                "enum": ["exact_match", "realistic_variant", "edge_case", "balanced"],
+                "description": "Generation mode (default: balanced)"
+            },
+            "pattern_blueprint": {
+                "type": "object",
+                "description": "Optional pattern blueprint from deep_analyze_pattern"
+            },
+            "reasoning_level": {
+                "type": "string",
+                "enum": ["basic", "deep", "comprehensive"],
+                "description": "Level of reasoning to apply (default: deep)"
+            },
+            "seed": {
+                "type": "integer",
+                "description": "Optional random seed for reproducibility"
+            },
+            "session_id": {
+                "type": "string",
+                "description": "Session ID from previous tool call"
+            }
+        },
+        "required": ["requirements", "num_rows"],
+    },
+)
+async def generate_with_modes_tool(args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Generate synthetic data with reasoning and generation modes.
+
+    Args:
+        requirements: Structured requirements with fields and constraints
+        num_rows: Number of rows to generate
+        mode: Generation mode (exact_match, realistic_variant, edge_case, balanced)
+        pattern_blueprint: Optional pattern blueprint
+        reasoning_level: Level of reasoning (basic, deep, comprehensive)
+        seed: Optional random seed
+        session_id: Session ID
+
+    Returns:
+        Generated data with reasoning steps and metadata
+    """
+    try:
+        requirements = args.get("requirements", {})
+        num_rows = args.get("num_rows", 100)
+        mode = args.get("mode", "balanced")
+        pattern_blueprint = args.get("pattern_blueprint")
+        reasoning_level = args.get("reasoning_level", "deep")
+        seed = args.get("seed")
+        session_id = _get_session_id(args)
+
+        if not requirements:
+            raise ValueError("requirements are required")
+
+        logger.info(
+            "Generating data with modes",
+            session_id=session_id,
+            num_rows=num_rows,
+            mode=mode,
+            reasoning_level=reasoning_level,
+        )
+
+        # Initialize configuration
+        config = Config()
+        if seed is not None:
+            config.generation.seed = seed
+
+        # Get stored pattern blueprint if not provided
+        state_manager = get_state_manager()
+        if not pattern_blueprint:
+            pattern_blueprint = await state_manager.get_value(session_id, "pattern_blueprint")
+
+        # If we have a pattern blueprint, use its pattern analysis
+        pattern_analysis = None
+        if pattern_blueprint:
+            # Convert blueprint to pattern_analysis format
+            pattern_analysis = {
+                "statistics": pattern_blueprint.get("statistics", {}),
+                "constraints": pattern_blueprint.get("constraints", {}),
+                "generation_strategy": pattern_blueprint.get("generation_strategy", {}),
+            }
+
+        # Initialize mode-aware generator
+        mode_generator = ModeAwareGenerator(mode)
+
+        # Initialize data generator
+        generator = DataGenerationEngine(config)
+
+        # Apply reasoning if requested
+        reasoning_steps = []
+        enhanced_requirements = requirements.copy()
+
+        if reasoning_level in ["deep", "comprehensive"]:
+            reasoning_steps.append("Step 1: Applying extended reasoning to requirements")
+
+            # Use reasoning engine if available
+            try:
+                reasoning_engine = ReasoningEngine(config)
+                reasoning_result, detection = await reasoning_engine.auto_execute(
+                    requirements=requirements,
+                    context={"pattern_blueprint": pattern_blueprint},
+                )
+                enhanced_requirements = reasoning_result.enhanced_requirements
+                reasoning_steps.extend(reasoning_result.reasoning_steps)
+
+                logger.info(
+                    "Reasoning applied",
+                    method=detection["recommended"],
+                    confidence=reasoning_result.confidence,
+                )
+            except Exception as e:
+                logger.warning("Reasoning engine not available, using base requirements", error=str(e))
+                reasoning_steps.append(f"Note: Advanced reasoning skipped - {str(e)}")
+
+        # Generate data
+        reasoning_steps.append(f"Step 2: Generating {num_rows} rows using {mode} mode")
+
+        df = await generator.generate(
+            requirements=enhanced_requirements,
+            num_rows=num_rows,
+            pattern_analysis=pattern_analysis,
+        )
+
+        # Apply mode-specific adjustments
+        reasoning_steps.append(f"Step 3: Applying {mode} mode adjustments")
+
+        # Store DataFrame with metadata
+        metadata = {
+            "num_rows": num_rows,
+            "mode": mode,
+            "reasoning_level": reasoning_level,
+            "requirements": enhanced_requirements,
+            "pattern_blueprint_used": pattern_blueprint is not None,
+            "reasoning_steps": reasoning_steps,
+        }
+        await state_manager.set_dataframe(session_id, df, metadata)
+
+        # Create preview
+        preview = df.head(10).to_dict(orient="records")
+
+        # Calculate statistics
+        stats = {
+            "session_id": session_id,
+            "total_rows": len(df),
+            "columns": list(df.columns),
+            "null_counts": df.isnull().sum().to_dict(),
+            "mode": mode,
+            "reasoning_level": reasoning_level,
+            "reasoning_steps": reasoning_steps,
+            "preview": preview,
+        }
+
+        logger.info("Data generated with modes", session_id=session_id, rows=len(df), mode=mode)
+
+        # Format user-friendly summary
+        mode_config = GenerationModeConfig.get_mode_config(mode)
+        summary = f"""
+✨ **Synthetic Data Generated**
+
+**Mode:** {mode_config['name']}
+**Description:** {mode_config['description']}
+**Rows Generated:** {len(df):,}
+**Columns:** {len(df.columns)}
+
+**Reasoning Steps:**
+{chr(10).join(f"  {step}" for step in reasoning_steps)}
+
+**Mode Characteristics:**
+- Variance Multiplier: {mode_config['variance_multiplier']}x
+- Distribution Fidelity: {mode_config['distribution_fidelity']:.0%}
+- Edge Case Ratio: {mode_config['edge_case_ratio']:.0%}
+- Outlier Ratio: {mode_config['outlier_ratio']:.0%}
+
+**Session ID:** {session_id}
+
+✅ Data ready for export!
+"""
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": summary,
+                },
+                {
+                    "type": "text",
+                    "text": json.dumps(stats, indent=2, default=str),
+                }
+            ]
+        }
+
+    except Exception as e:
+        logger.error("Error generating data with modes", error=str(e))
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Error generating data: {str(e)}",
+                }
+            ],
+            "isError": True,
+        }
+
+
+@tool(
+    name="validate_quality",
+    description="Validates quality of generated synthetic data against pattern blueprint. Checks statistical similarity, constraint compliance, distribution matching, data leakage, and diversity. Returns detailed validation report with scores.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "session_id": {
+                "type": "string",
+                "description": "Session ID from generate_with_modes call"
+            },
+            "original_data_path": {
+                "type": "string",
+                "description": "Optional path to original data for leakage detection"
+            }
+        },
+        "required": ["session_id"],
+    },
+)
+async def validate_quality_tool(args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validate quality of generated synthetic data.
+
+    Args:
+        session_id: Session ID from generate_with_modes
+        original_data_path: Optional path to original data
+
+    Returns:
+        Detailed validation report with scores and recommendations
+    """
+    try:
+        session_id = args.get("session_id")
+        original_data_path = args.get("original_data_path")
+
+        if not session_id:
+            raise ValueError("session_id is required. Call generate_with_modes first.")
+
+        logger.info("Validating data quality", session_id=session_id)
+
+        # Get generated data from state
+        state_manager = get_state_manager()
+        generated_df = await state_manager.get_dataframe(session_id)
+
+        if generated_df is None:
+            raise ValueError(f"No generated data found for session {session_id}")
+
+        # Get pattern blueprint
+        pattern_blueprint = await state_manager.get_value(session_id, "pattern_blueprint")
+
+        if not pattern_blueprint:
+            raise ValueError("No pattern blueprint found. Run deep_analyze_pattern first.")
+
+        # Load original data if provided
+        original_df = None
+        if original_data_path:
+            file_path = Path(original_data_path)
+            if file_path.suffix == ".csv":
+                original_df = pd.read_csv(file_path)
+            elif file_path.suffix == ".json":
+                original_df = pd.read_json(file_path)
+            elif file_path.suffix == ".xlsx":
+                original_df = pd.read_excel(file_path)
+
+        # Initialize validator
+        config = Config()
+        validator = QualityValidator(config)
+
+        # Validate
+        validation_report = await validator.validate(
+            generated_df=generated_df,
+            pattern_blueprint=pattern_blueprint,
+            original_df=original_df,
+        )
+
+        logger.info(
+            "Quality validation complete",
+            session_id=session_id,
+            score=validation_report["overall_score"],
+            passed=validation_report["passed"],
+        )
+
+        # Format user-friendly summary
+        status_emoji = "✅" if validation_report["passed"] else "❌"
+        summary = f"""
+{status_emoji} **Quality Validation Report**
+
+**Overall Score:** {validation_report['overall_score']:.1%}
+**Status:** {'PASSED' if validation_report['passed'] else 'FAILED'}
+
+**Detailed Checks:**
+
+1. **Statistical Similarity:** {validation_report['checks']['statistical_similarity']['score']:.1%}
+   - {'✅ Passed' if validation_report['checks']['statistical_similarity']['passed'] else '❌ Failed'}
+   - Failures: {len(validation_report['checks']['statistical_similarity'].get('failures', []))}
+
+2. **Constraint Compliance:** {validation_report['checks']['constraint_compliance']['score']:.1%}
+   - {'✅ Passed' if validation_report['checks']['constraint_compliance']['passed'] else '❌ Failed'}
+   - Violations: {len(validation_report['checks']['constraint_compliance'].get('violations', []))}
+
+3. **Distribution Matching:** {validation_report['checks']['distribution_matching']['score']:.1%}
+   - {'✅ Passed' if validation_report['checks']['distribution_matching']['passed'] else '❌ Failed'}
+
+4. **Data Leakage Check:** {'✅ No leakage' if not validation_report['checks']['data_leakage'].get('leakage_detected') else '❌ LEAKAGE DETECTED'}
+
+5. **Diversity:** {validation_report['checks']['diversity']['score']:.1%}
+   - {'✅ Passed' if validation_report['checks']['diversity']['passed'] else '❌ Failed'}
+
+**Recommendations:**
+{chr(10).join(f"  • {rec}" for rec in validation_report.get('recommendations', []))}
+"""
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": summary,
+                },
+                {
+                    "type": "text",
+                    "text": json.dumps(validation_report, indent=2, default=str),
+                }
+            ]
+        }
+
+    except Exception as e:
+        logger.error("Error validating quality", error=str(e))
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Error validating quality: {str(e)}",
+                }
+            ],
+            "isError": True,
+        }
+
+
+@tool(
+    name="list_generation_modes",
+    description="Lists all available generation modes with descriptions and use cases. Helps users choose the right mode for their needs.",
+    input_schema={
+        "type": "object",
+        "properties": {},
+    },
+)
+async def list_generation_modes_tool(args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    List all available generation modes.
+
+    Returns:
+        Dictionary of modes with descriptions
+    """
+    try:
+        logger.debug("Listing generation modes")
+
+        modes = GenerationModeConfig.list_modes()
+
+        # Format user-friendly output
+        summary = "🎯 **Available Generation Modes**\n\n"
+
+        for mode_key, mode_info in modes.items():
+            summary += f"**{mode_info['name']}** (`{mode_key}`)\n"
+            summary += f"  {mode_info['description']}\n"
+            summary += f"  **Use Case:** {mode_info['use_case']}\n\n"
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": summary,
+                },
+                {
+                    "type": "text",
+                    "text": json.dumps(modes, indent=2),
+                }
+            ]
+        }
+
+    except Exception as e:
+        logger.error("Error listing generation modes", error=str(e))
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Error listing generation modes: {str(e)}",
+                }
+            ],
+            "isError": True,
+        }
+
+
 # Create SDK MCP server with all tools
 # This is the proper way to register tools with Claude Agent SDK
 synth_tools_server = create_sdk_mcp_server(
     name="synth-data-tools",
-    version="1.0.0",
+    version="2.0.0",
     tools=[
+        # Original tools
         analyze_requirements_tool,
         detect_ambiguities_tool,
         analyze_pattern_tool,
@@ -803,6 +1331,11 @@ synth_tools_server = create_sdk_mcp_server(
         list_formats_tool,
         select_reasoning_strategy_tool,
         list_reasoning_methods_tool,
+        # New enhanced tools
+        deep_analyze_pattern_tool,
+        generate_with_modes_tool,
+        validate_quality_tool,
+        list_generation_modes_tool,
     ]
 )
 
