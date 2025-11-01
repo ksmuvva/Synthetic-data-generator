@@ -212,11 +212,34 @@ Pure conversational AI interface:
 - File operations and analysis
 
 ### 2. Agent SDK Mode (Advanced)
-Claude Agent SDK with custom MCP tools:
-- Custom tools for data generation
+Claude Agent SDK with custom MCP tools and skills:
+- **12 custom MCP tools** for data generation
+- **10 Claude Agent Skills** for enhanced capabilities
+- **12 advanced reasoning methods** for intelligent generation
+- **4 generation modes** for flexible output
 - Pattern analysis capabilities
 - Advanced hooks system
 - Thread-safe state management
+
+### 🎯 Claude Agent Skills
+
+The agent is enhanced with **10 specialized skills**:
+
+**Built-in Skills (4):**
+- **xlsx** - Excel spreadsheet operations
+- **pdf** - PDF document operations
+- **docx** - Word document operations
+- **pptx** - PowerPoint presentations
+
+**Custom Skills (6):**
+- **data-validation** - Advanced quality validation
+- **statistical-analysis** - Deep pattern recognition
+- **data-visualization** - Charts and visual reports
+- **schema-inference** - Automatic type detection
+- **privacy-checker** - PII detection & compliance
+- **relational-mapper** - Multi-table generation
+
+📖 **Learn more**: See [SKILLS.md](SKILLS.md) for complete documentation
 
 ## 🔧 Development
 
@@ -254,8 +277,15 @@ For comprehensive documentation including:
 - Document generation modes
 - Advanced usage patterns
 - API reference
+- **Claude Agent Skills** - [SKILLS.md](SKILLS.md)
+- Advanced features guide - [FEATURE_GUIDE.md](FEATURE_GUIDE.md)
+- Agent SDK guide - [docs/AGENT_SDK_GUIDE.md](docs/AGENT_SDK_GUIDE.md)
 
-See: [NLP_CHAT_README.md](NLP_CHAT_README.md)
+**Key Documentation:**
+- [NLP_CHAT_README.md](NLP_CHAT_README.md) - Chat interface guide
+- [SKILLS.md](SKILLS.md) - **NEW:** Complete skills documentation
+- [FEATURE_GUIDE.md](FEATURE_GUIDE.md) - Advanced features
+- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Project overview
 
 ## 🐛 Troubleshooting
 
