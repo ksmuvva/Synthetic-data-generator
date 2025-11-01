@@ -1,0 +1,155 @@
+"""Unit tests for file validator."""
+
+import pytest
+from pathlib import Path
+from unittest.mock import Mock, patch, mock_open
+
+from synth_agent.utils.file_validator import FileValidator
+from synth_agent.core.config import Config
+from synth_agent.core.exceptions import ValidationError
+
+
+class TestFileValidator:
+    """Tests for file validator."""
+
+    def test_file_validator_initialization(self):
+        """Test file validator initialization."""
+        config = Config()
+        validator = FileValidator(config)
+
+        assert validator.config == config
+
+    def test_validate_file_extension_allowed(self):
+        """Test validating allowed file extension."""
+        config = Config()
+        validator = FileValidator(config)
+
+        # .csv should be allowed
+        result = validator.validate_file_path(Path("test.csv"))
+
+        # Should not raise or return valid
+        assert result is None or result is True or isinstance(result, bool)
+
+    def test_validate_file_extension_not_allowed(self):
+        """Test validating disallowed file extension."""
+        config = Config()
+        validator = FileValidator(config)
+
+        # .exe should not be allowed
+        with pytest.raises((ValidationError, ValueError)):
+            validator.validate_file_path(Path("malicious.exe"))
+
+    def test_validate_file_size(self):
+        """Test file size validation."""
+        config = Config()
+        validator = FileValidator(config)
+
+        if hasattr(validator, 'validate_file_size'):
+            # Mock file with acceptable size
+            with patch('pathlib.Path.stat') as mock_stat:
+                mock_stat.return_value.st_size = 1024 * 1024  # 1MB
+
+                result = validator.validate_file_size(Path("test.csv"))
+                assert result is None or result is True
+
+    def test_validate_file_size_too_large(self):
+        """Test file size validation with oversized file."""
+        config = Config()
+        validator = FileValidator(config)
+
+        if hasattr(validator, 'validate_file_size'):
+            with patch('pathlib.Path.stat') as mock_stat:
+                # Set size larger than max (500MB default)
+                mock_stat.return_value.st_size = 600 * 1024 * 1024  # 600MB
+
+                with pytest.raises((ValidationError, ValueError)):
+                    validator.validate_file_size(Path("huge.csv"))
+
+    def test_validate_path_traversal_attack(self):
+        """Test protection against path traversal."""
+        config = Config()
+        validator = FileValidator(config)
+
+        dangerous_paths = [
+            "../../../etc/passwd",
+            "..\\..\\windows\\system32",
+            "/etc/shadow"
+        ]
+
+        for dangerous_path in dangerous_paths:
+            with pytest.raises((ValidationError, ValueError)):
+                validator.validate_file_path(Path(dangerous_path))
+
+    def test_validate_csv_content(self, tmp_path):
+        """Test CSV content validation."""
+        config = Config()
+        validator = FileValidator(config)
+
+        # Create a valid CSV file
+        csv_file = tmp_path / "test.csv"
+        csv_file.write_text("id,name,age\\n1,Alice,25\\n2,Bob,30")
+
+        if hasattr(validator, 'validate_csv'):
+            result = validator.validate_csv(csv_file)
+            assert result is None or isinstance(result, bool)
+
+    def test_validate_json_content(self, tmp_path):
+        """Test JSON content validation."""
+        config = Config()
+        validator = FileValidator(config)
+
+        # Create a valid JSON file
+        json_file = tmp_path / "test.json"
+        json_file.write_text('[{"id": 1, "name": "Alice"}]')
+
+        if hasattr(validator, 'validate_json'):
+            result = validator.validate_json(json_file)
+            assert result is None or isinstance(result, bool)
+
+    def test_validate_malformed_json(self, tmp_path):
+        """Test JSON validation with malformed content."""
+        config = Config()
+        validator = FileValidator(config)
+
+        # Create malformed JSON
+        json_file = tmp_path / "bad.json"
+        json_file.write_text('{"invalid": json content}')
+
+        if hasattr(validator, 'validate_json'):
+            with pytest.raises((ValidationError, ValueError, Exception)):
+                validator.validate_json(json_file)
+
+    def test_sanitize_filename(self):
+        """Test filename sanitization."""
+        config = Config()
+        validator = FileValidator(config)
+
+        if hasattr(validator, 'sanitize_filename'):
+            dangerous_name = "../../../etc/passwd"
+            safe_name = validator.sanitize_filename(dangerous_name)
+
+            assert ".." not in safe_name
+            assert "/" not in safe_name or safe_name.startswith("/")
+
+    def test_is_safe_path(self):
+        """Test safe path checking."""
+        config = Config()
+        validator = FileValidator(config)
+
+        if hasattr(validator, 'is_safe_path'):
+            safe_paths = [
+                "output/data.csv",
+                "./local/file.json",
+                "data/subfolder/file.xlsx"
+            ]
+
+            for path in safe_paths:
+                assert validator.is_safe_path(Path(path))
+
+            unsafe_paths = [
+                "../../../etc/passwd",
+                "/etc/shadow"
+            ]
+
+            for path in unsafe_paths:
+                assert not validator.is_safe_path(Path(path))

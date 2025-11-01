@@ -275,7 +275,7 @@ class TestConfig:
         assert "security" in config_dict
         assert "ui" in config_dict
 
-        assert config_dict["llm"]["provider"] == "openai"
+        assert config_dict["llm"]["provider"] == "anthropic"  # From default_config.yaml
         assert config_dict["generation"]["default_rows"] == 1000
 
     def test_path_expansion(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
