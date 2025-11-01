@@ -21,6 +21,8 @@ from ..formats.manager import FormatManager
 from ..core.config import Config
 from ..utils.helpers import extract_json_from_text
 from .state import get_state_manager
+from ..reasoning.engine import ReasoningEngine
+from ..reasoning.strategy_selector import StrategySelector
 
 import structlog
 
@@ -591,6 +593,202 @@ async def list_formats_tool(args: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
+@tool(
+    name="select_reasoning_strategy",
+    description="Auto-detects the optimal reasoning strategy based on requirements and prompts user for confirmation. Returns recommended strategy with explanation.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "requirements": {
+                "type": "object",
+                "description": "Data requirements to analyze"
+            },
+            "use_case": {
+                "type": "string",
+                "description": "Optional explicit use case (e.g., 'financial', 'healthcare')"
+            },
+            "auto_approve": {
+                "type": "boolean",
+                "description": "Skip user confirmation and auto-approve recommended strategy (default: false)"
+            },
+            "session_id": {
+                "type": "string",
+                "description": "Session ID for tracking"
+            }
+        },
+        "required": ["requirements"],
+    },
+)
+async def select_reasoning_strategy_tool(args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Auto-detect optimal reasoning strategy and get user confirmation.
+
+    Args:
+        requirements: Data requirements to analyze
+        use_case: Optional explicit use case
+        auto_approve: Skip confirmation
+        session_id: Session ID
+
+    Returns:
+        Recommended strategy with explanation and alternatives
+    """
+    try:
+        requirements = args.get("requirements", {})
+        use_case = args.get("use_case")
+        auto_approve = args.get("auto_approve", False)
+        session_id = _get_session_id(args)
+
+        logger.info("Selecting reasoning strategy", session_id=session_id)
+
+        # Initialize configuration and selector
+        config = Config()
+        selector = StrategySelector(config)
+
+        # Override domain if use_case provided
+        if use_case:
+            requirements["domain"] = use_case
+
+        # Auto-detect strategy
+        detection = await selector.auto_detect(requirements)
+
+        # Format response
+        response_text = f"""
+🎯 **Reasoning Strategy Recommendation**
+
+**Recommended Method:** {detection['recommended'].replace('_', ' ').title()}
+**Confidence:** {detection['confidence']:.0%}
+**Detected Domain:** {detection['detected_domain']}
+
+**Explanation:**
+{detection['reason']}
+
+**Alternative Methods:**
+"""
+
+        for i, alt in enumerate(detection['alternatives'][:3], 1):
+            response_text += f"\n{i}. {alt.replace('_', ' ').title()}"
+
+        if not auto_approve:
+            response_text += "\n\n❓ **Would you like to proceed with this strategy?** (yes/no/choose)"
+        else:
+            response_text += "\n\n✓ **Auto-approved** - Proceeding with recommended strategy"
+
+        # Store recommendation in state
+        state_manager = get_state_manager()
+        await state_manager.set_value(
+            session_id,
+            "reasoning_recommendation",
+            detection,
+        )
+
+        logger.info(
+            "Strategy selected",
+            session_id=session_id,
+            recommended=detection['recommended'],
+        )
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": response_text,
+                },
+                {
+                    "type": "text",
+                    "text": json.dumps(detection, indent=2),
+                }
+            ]
+        }
+
+    except Exception as e:
+        logger.error("Error selecting reasoning strategy", error=str(e))
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Error selecting reasoning strategy: {str(e)}",
+                }
+            ],
+            "isError": True,
+        }
+
+
+@tool(
+    name="list_reasoning_methods",
+    description="Lists all available reasoning methods with descriptions, use cases, and parameters. Useful for showing user options.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "filter_by_domain": {
+                "type": "string",
+                "description": "Optional domain filter (e.g., 'financial', 'healthcare')"
+            }
+        },
+    },
+)
+async def list_reasoning_methods_tool(args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    List all available reasoning methods.
+
+    Args:
+        filter_by_domain: Optional domain filter
+
+    Returns:
+        List of reasoning methods with descriptions
+    """
+    try:
+        filter_domain = args.get("filter_by_domain")
+
+        logger.info("Listing reasoning methods", filter_domain=filter_domain)
+
+        # Initialize selector to get methods
+        config = Config()
+        selector = StrategySelector(config)
+        all_methods = selector.get_all_methods()
+
+        # Filter if requested
+        if filter_domain:
+            all_methods = [
+                m for m in all_methods
+                if filter_domain.lower() in [d.lower() for d in m.get("domains", [])]
+            ]
+
+        # Format response
+        response_text = "🎯 **Available Reasoning Methods**\n\n"
+
+        for i, method in enumerate(all_methods, 1):
+            response_text += f"{i}. **{method['name']}**\n"
+            response_text += f"   {method['description']}\n"
+            response_text += f"   **Use Cases:** {', '.join(method['domains'][:3])}\n\n"
+
+        logger.info("Listed reasoning methods", count=len(all_methods))
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": response_text,
+                },
+                {
+                    "type": "text",
+                    "text": json.dumps(all_methods, indent=2),
+                }
+            ]
+        }
+
+    except Exception as e:
+        logger.error("Error listing reasoning methods", error=str(e))
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Error listing reasoning methods: {str(e)}",
+                }
+            ],
+            "isError": True,
+        }
+
+
 # Create SDK MCP server with all tools
 # This is the proper way to register tools with Claude Agent SDK
 synth_tools_server = create_sdk_mcp_server(
@@ -603,6 +801,8 @@ synth_tools_server = create_sdk_mcp_server(
         generate_data_tool,
         export_data_tool,
         list_formats_tool,
+        select_reasoning_strategy_tool,
+        list_reasoning_methods_tool,
     ]
 )
 

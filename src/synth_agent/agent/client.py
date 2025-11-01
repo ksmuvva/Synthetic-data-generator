@@ -76,6 +76,8 @@ class SynthAgentClient:
             "mcp__synth__generate_data",
             "mcp__synth__export_data",
             "mcp__synth__list_formats",
+            "mcp__synth__select_reasoning_strategy",
+            "mcp__synth__list_reasoning_methods",
         ]
 
         # Create hooks for processing stages (if enabled)
@@ -127,10 +129,21 @@ You have access to the following specialized tools:
 - Input: file_path (CSV, JSON, Excel, or Parquet), optional analyze_with_llm flag
 - Output: Statistical analysis, distributions, and pattern recommendations
 
+**select_reasoning_strategy**: Auto-detect optimal reasoning method for data generation
+- Input: requirements, optional use_case, optional auto_approve
+- Output: Recommended reasoning strategy with explanation and alternatives
+- Use this BEFORE generate_data for intelligent requirement enhancement
+
+**list_reasoning_methods**: List all available reasoning methods
+- Input: optional filter_by_domain
+- Output: All reasoning methods with descriptions and use cases
+- Use this to show users available reasoning options
+
 **generate_data**: Generate synthetic data based on requirements
 - Input: requirements, num_rows, optional pattern_analysis, optional seed
 - Output: Data preview, statistics, and session_id for export
 - IMPORTANT: Returns session_id that MUST be used for export_data
+- TIP: Use select_reasoning_strategy first for better results
 
 **export_data**: Export generated data to various formats
 - Input: format, output_path, session_id (from generate_data), optional options
@@ -155,8 +168,26 @@ Workflow:
 1. Use analyze_requirements to parse user requirements
 2. Use detect_ambiguities to identify unclear specifications
 3. (Optional) Use analyze_pattern if user provides sample data
-4. Use generate_data to create synthetic data (captures session_id from response)
-5. Use export_data with the session_id to save data to file
+4. (Optional but recommended) Use select_reasoning_strategy to get optimal reasoning method
+5. Use generate_data to create synthetic data (captures session_id from response)
+6. Use export_data with the session_id to save data to file
+
+Reasoning Methods:
+The agent supports 12 advanced reasoning methods that enhance data generation:
+- MCTS (Monte Carlo Tree Search) - Best for financial, trading, risk data
+- Beam Search - Best for e-commerce, product catalogs
+- Chain of Thought - Best for healthcare, legal, complex constraints
+- Tree of Thoughts - Best for relational, multi-table data
+- Self-Consistency - Best for compliance, validation
+- ReAct - Best for real-time validation
+- Reflexion - Best for iterative quality improvement
+- Best-First Search - Best for time-series, sequential data
+- A* Search - Best for optimization, scheduling
+- Meta-Prompting - Best for multi-domain, adaptive
+- Iterative Refinement - General purpose (default)
+- Graph of Thoughts - Best for network, social graphs
+
+Use select_reasoning_strategy before generate_data to automatically apply the best method!
 
 Be helpful, precise, and thorough in assisting with data generation tasks.
 """
