@@ -209,6 +209,211 @@ async def agent_loop(config: Config, initial_prompt: str, verbose: bool = False)
 
 
 @app.command()
+def generate(
+    pattern_file: Path = typer.Option(
+        ..., "--pattern-file", "-p", help="Path to pattern file (CSV, JSON, Excel, etc.)"
+    ),
+    output: Path = typer.Option(
+        ..., "--output", "-o", help="Output file path for generated data"
+    ),
+    num_records: int = typer.Option(
+        1000, "--num-records", "-n", help="Number of records to generate"
+    ),
+    mode: str = typer.Option(
+        "balanced",
+        "--mode",
+        "-m",
+        help="Generation mode: exact_match, realistic_variant, edge_case, balanced",
+    ),
+    reasoning_level: str = typer.Option(
+        "deep", "--reasoning-level", "-r", help="Reasoning level: basic, deep, comprehensive"
+    ),
+    output_format: Optional[str] = typer.Option(
+        None, "--output-format", "-f", help="Output format (auto-detected from extension if not specified)"
+    ),
+    validate: bool = typer.Option(
+        True, "--validate/--no-validate", help="Validate generated data quality"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
+) -> None:
+    """
+    Generate synthetic data from a pattern file.
+
+    This command provides a streamlined workflow:
+    1. Analyzes the pattern file with deep reasoning
+    2. Generates synthetic data using the specified mode
+    3. Validates the quality (optional)
+    4. Exports to the specified format
+
+    Examples:
+        synth-agent generate -p customer_data.csv -o synthetic_customers.csv -n 10000
+        synth-agent generate -p orders.xlsx -o synthetic_orders.json -m edge_case
+        synth-agent generate -p pattern.csv -o output.parquet --reasoning-level comprehensive
+    """
+    try:
+        print_welcome()
+        console.print("\n[bold cyan]🚀 Synthetic Data Generation Workflow[/bold cyan]\n")
+
+        # Validate pattern file exists
+        if not pattern_file.exists():
+            print_error(f"Pattern file not found: {pattern_file}")
+            raise typer.Exit(1)
+
+        # Determine output format
+        if not output_format:
+            output_format = output.suffix.lstrip(".")
+            if not output_format:
+                print_error("Could not determine output format. Please specify --output-format")
+                raise typer.Exit(1)
+
+        if verbose:
+            print_info(f"Pattern file: {pattern_file}")
+            print_info(f"Output file: {output}")
+            print_info(f"Records: {num_records:,}")
+            print_info(f"Mode: {mode}")
+            print_info(f"Reasoning level: {reasoning_level}")
+            print_info(f"Output format: {output_format}")
+
+        # Run the generation workflow
+        asyncio.run(
+            generation_workflow(
+                pattern_file=pattern_file,
+                output_file=output,
+                num_records=num_records,
+                mode=mode,
+                reasoning_level=reasoning_level,
+                output_format=output_format,
+                validate_quality=validate,
+                verbose=verbose,
+            )
+        )
+
+    except KeyboardInterrupt:
+        console.print("\n\n[yellow]Generation interrupted by user.[/yellow]")
+        raise typer.Exit(0)
+    except Exception as e:
+        print_error(f"Generation failed: {e}")
+        if verbose:
+            console.print_exception()
+        raise typer.Exit(1)
+
+
+async def generation_workflow(
+    pattern_file: Path,
+    output_file: Path,
+    num_records: int,
+    mode: str,
+    reasoning_level: str,
+    output_format: str,
+    validate_quality: bool,
+    verbose: bool,
+) -> None:
+    """
+    Execute the complete generation workflow.
+    """
+    from synth_agent.agent import SynthAgentClient
+    from synth_agent.core.config import Config
+
+    config = Config()
+
+    async with SynthAgentClient(config=config) as client:
+        console.print("[bold]Step 1:[/bold] Analyzing pattern file...\n")
+
+        # Step 1: Deep pattern analysis
+        analysis_prompt = f"""
+Please use the deep_analyze_pattern tool to analyze this pattern file:
+
+File path: {pattern_file.absolute()}
+Analysis depth: comprehensive
+
+After analysis, show me a summary of the pattern blueprint.
+"""
+
+        session_id = None
+        async for message in client.query(analysis_prompt):
+            if message.get("type") == "text":
+                content = message.get("content", "")
+                if verbose:
+                    console.print(content)
+
+                # Extract session_id if present
+                import re
+                session_match = re.search(r'"session_id":\s*"([^"]+)"', str(message))
+                if session_match:
+                    session_id = session_match.group(1)
+
+        if not session_id:
+            print_error("Failed to get session ID from analysis")
+            raise Exception("Pattern analysis failed")
+
+        console.print(f"\n[green]✓[/green] Pattern analysis complete (Session: {session_id})\n")
+
+        # Step 2: Generate data
+        console.print(f"[bold]Step 2:[/bold] Generating {num_records:,} records using [cyan]{mode}[/cyan] mode...\n")
+
+        generation_prompt = f"""
+Now use the generate_with_modes tool to generate synthetic data:
+
+Session ID: {session_id}
+Number of records: {num_records}
+Generation mode: {mode}
+Reasoning level: {reasoning_level}
+
+Please generate the data based on the pattern analysis.
+"""
+
+        async for message in client.query(generation_prompt):
+            if message.get("type") == "text":
+                content = message.get("content", "")
+                if verbose:
+                    console.print(content)
+
+        console.print(f"\n[green]✓[/green] Data generation complete\n")
+
+        # Step 3: Validate (optional)
+        if validate_quality:
+            console.print("[bold]Step 3:[/bold] Validating data quality...\n")
+
+            validation_prompt = f"""
+Please use the validate_quality tool to validate the generated data:
+
+Session ID: {session_id}
+Original data path: {pattern_file.absolute()}
+
+Show me the validation report.
+"""
+
+            async for message in client.query(validation_prompt):
+                if message.get("type") == "text":
+                    content = message.get("content", "")
+                    console.print(content)
+
+            console.print(f"\n[green]✓[/green] Quality validation complete\n")
+
+        # Step 4: Export
+        console.print(f"[bold]Step 4:[/bold] Exporting to {output_format.upper()}...\n")
+
+        export_prompt = f"""
+Please use the export_data tool to export the generated data:
+
+Session ID: {session_id}
+Format: {output_format}
+Output path: {output_file.absolute()}
+
+Export the data and confirm the file was created.
+"""
+
+        async for message in client.query(export_prompt):
+            if message.get("type") == "text":
+                content = message.get("content", "")
+                if verbose:
+                    console.print(content)
+
+        console.print(f"\n[bold green]✅ Generation workflow complete![/bold green]")
+        console.print(f"[bold]Output file:[/bold] {output_file.absolute()}")
+
+
+@app.command()
 def version() -> None:
     """Show version information."""
     console.print(f"Synthetic Data Generator v{__version__} (Claude Agent SDK)")
