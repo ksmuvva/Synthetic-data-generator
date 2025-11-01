@@ -85,7 +85,7 @@ def test_client_has_mcp_tools():
 
     # Check that MCP tools are in allowed_tools
     mcp_tools = client.get_mcp_tools()
-    assert len(mcp_tools) == 6  # We have 6 custom tools
+    assert len(mcp_tools) == 8  # We have 8 custom tools (6 original + 2 reasoning)
 
     expected_tools = [
         "mcp__synth__analyze_requirements",

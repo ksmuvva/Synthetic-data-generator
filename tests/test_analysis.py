@@ -316,7 +316,7 @@ class TestPatternAnalyzer:
         distribution = analyzer._detect_distribution(series)
 
         # Should detect as normal or symmetric
-        assert distribution in ["normal", "symmetric"]
+        assert distribution["name"] in ["normal", "symmetric"]
 
     def test_detect_pattern_email(self, analyzer: PatternAnalyzer) -> None:
         """Test detecting email pattern."""

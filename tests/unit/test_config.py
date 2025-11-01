@@ -179,7 +179,7 @@ class TestConfig:
     def test_default_initialization(self):
         """Test configuration initialization with defaults."""
         config = Config()
-        assert config.llm.provider == "openai"
+        assert config.llm.provider == "anthropic"  # From default_config.yaml
         assert config.generation.default_rows == 1000
         assert config.storage.default_output_dir == "./output"
 
@@ -225,7 +225,7 @@ class TestConfig:
         assert "llm" in config_dict
         assert "generation" in config_dict
         assert "storage" in config_dict
-        assert config_dict["llm"]["provider"] == "openai"
+        assert config_dict["llm"]["provider"] == "anthropic"  # From default_config.yaml
 
     def test_path_expansion(self):
         """Test path expansion for user directories."""
@@ -270,7 +270,7 @@ class TestHelperFunctions:
         """Test get_config function."""
         config = get_config()
         assert isinstance(config, Config)
-        assert config.llm.provider == "openai"
+        assert config.llm.provider == "anthropic"  # From default_config.yaml
 
     def test_get_config_with_overrides(self):
         """Test get_config with overrides."""
