@@ -146,6 +146,46 @@ class UIConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_UI_", extra="ignore")
 
 
+class ReasoningConfig(BaseSettings):
+    """Reasoning strategy configuration settings."""
+
+    # Auto-detection
+    auto_detect: bool = Field(default=True, description="Auto-detect optimal reasoning strategy")
+    confidence_threshold: float = Field(default=0.75, ge=0.0, le=1.0, description="Minimum confidence for auto-selection")
+
+    # User interaction
+    confirm_before_use: bool = Field(default=True, description="Prompt user before applying reasoning")
+    show_alternatives: bool = Field(default=True, description="Show alternative reasoning methods")
+
+    # Defaults
+    default_method: str = Field(default="iterative_refinement", description="Default reasoning method")
+    fallback_method: str = Field(default="iterative_refinement", description="Fallback if auto-detection fails")
+
+    # Method-specific parameters
+    mcts_iterations: int = Field(default=100, ge=10, le=1000, description="MCTS iterations")
+    mcts_exploration_factor: float = Field(default=1.414, ge=0.1, le=10.0, description="MCTS exploration factor")
+    beam_width: int = Field(default=5, ge=1, le=20, description="Beam search width")
+    cot_max_steps: int = Field(default=10, ge=1, le=50, description="Chain of Thought max steps")
+    tot_branches: int = Field(default=3, ge=1, le=10, description="Tree of Thoughts branches")
+    self_consistency_samples: int = Field(default=5, ge=2, le=20, description="Self-consistency sample count")
+    reflexion_max_iterations: int = Field(default=3, ge=1, le=10, description="Reflexion max iterations")
+
+    # Performance
+    enable_caching: bool = Field(default=True, description="Enable reasoning result caching")
+    parallel_reasoning: bool = Field(default=False, description="Run multiple methods in parallel")
+    max_reasoning_time: int = Field(default=300, ge=10, le=3600, description="Max reasoning time in seconds")
+
+    # Metrics
+    track_performance: bool = Field(default=True, description="Track reasoning performance metrics")
+    log_reasoning_steps: bool = Field(default=True, description="Log reasoning steps")
+
+    # Domain detection
+    domain_detection_llm: bool = Field(default=False, description="Use LLM for domain detection")
+    keyword_based_fallback: bool = Field(default=True, description="Fall back to keyword-based detection")
+
+    model_config = SettingsConfigDict(env_prefix="SYNTH_AGENT_REASONING_", extra="ignore")
+
+
 class Config:
     """Main configuration class."""
 
@@ -180,6 +220,7 @@ class Config:
         self.logging = LoggingConfig(**self._filter_extra_keys(self._config_data.get("logging", {}), LoggingConfig))
         self.security = SecurityConfig(**self._filter_extra_keys(self._config_data.get("security", {}), SecurityConfig))
         self.ui = UIConfig(**self._filter_extra_keys(self._config_data.get("ui", {}), UIConfig))
+        self.reasoning = ReasoningConfig(**self._filter_extra_keys(self._config_data.get("reasoning", {}), ReasoningConfig))
 
         # Expand paths
         self._expand_paths()
@@ -223,6 +264,7 @@ class Config:
             "logging": self.logging.model_dump(),
             "security": self.security.model_dump(),
             "ui": self.ui.model_dump(),
+            "reasoning": self.reasoning.model_dump(),
         }
 
     def __repr__(self) -> str:
