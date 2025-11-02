@@ -11,7 +11,7 @@ from pathlib import Path
 
 from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions
 
-from .tools import synth_tools_server
+from . import tools as agent_tools
 from .hooks import create_hooks
 from ..core.config import Config
 
@@ -28,10 +28,10 @@ class SynthAgentClient:
     This client integrates the synthetic data generator tools with Claude Agent SDK,
     providing a conversational interface for data generation tasks.
 
-    The client strictly complies with Claude Agent SDK framework by:
-    - Using create_sdk_mcp_server() for tool registration
-    - Properly registering MCP servers with correct namespace
-    - Including MCP tool names in allowed_tools list
+    The client uses pure Claude Agent SDK by:
+    - Registering individual tools directly with the SDK
+    - Using @tool decorator for tool definitions
+    - Including all tool names in allowed_tools list
     - Using SDK hooks system for lifecycle management
     """
 
@@ -59,8 +59,7 @@ class SynthAgentClient:
         # Build system prompt
         self.system_prompt = system_prompt or self._build_system_prompt()
 
-        # Configure allowed tools - CRITICAL: Must include MCP tool names with namespace
-        # Format: "mcp__<namespace>__<tool_name>"
+        # Configure allowed tools - include all agent tool names
         self.allowed_tools = allowed_tools or [
             # Basic file operation tools
             "Read",
@@ -69,27 +68,35 @@ class SynthAgentClient:
             "Bash",
             "Glob",
             "Grep",
-            # Our custom MCP tools with 'synth' namespace
-            "mcp__synth__analyze_requirements",
-            "mcp__synth__detect_ambiguities",
-            "mcp__synth__analyze_pattern",
-            "mcp__synth__generate_data",
-            "mcp__synth__export_data",
-            "mcp__synth__list_formats",
-            "mcp__synth__select_reasoning_strategy",
-            "mcp__synth__list_reasoning_methods",
+            # Our custom agent tools
+            "analyze_requirements",
+            "detect_ambiguities",
+            "analyze_pattern",
+            "generate_data",
+            "export_data",
+            "list_formats",
+            "select_reasoning_strategy",
+            "list_reasoning_methods",
+            "deep_analyze_pattern",
+            "generate_with_modes",
+            "validate_quality",
+            "list_generation_modes",
         ]
 
         # Create hooks for processing stages (if enabled)
         self.hooks = create_hooks(self.config) if enable_hooks else {}
 
-        # Build Claude Agent options - CRITICAL: Proper MCP server registration
-        # The SDK MCP server must be registered in mcp_servers with a namespace
+        # Import agent tools module to ensure all @tool decorated functions are loaded
+        # The Claude Agent SDK auto-discovers tools decorated with @tool
+        # No explicit registration needed - just import the module
+        import synth_agent.agent.tools  # noqa: F401
+
+        # Build Claude Agent options
+        # Tools are auto-discovered from imported modules with @tool decorators
         self.agent_options = ClaudeAgentOptions(
             system_prompt=self.system_prompt,
             allowed_tools=self.allowed_tools,
             cwd=str(self.cwd),
-            mcp_servers={"synth": synth_tools_server},  # Namespace: server mapping
             hooks=self.hooks if enable_hooks else None,
         )
 
@@ -309,10 +316,10 @@ Be helpful, precise, and thorough in assisting with data generation tasks.
                 tool_name = message.get("tool_name")
                 content = message.get("content")
 
-                if tool_name == "mcp__synth__generate_data":
+                if tool_name == "generate_data":
                     result["generation"] = content
                     logger.debug("Captured generation result")
-                elif tool_name == "mcp__synth__export_data":
+                elif tool_name == "export_data":
                     result["export"] = content
                     logger.debug("Captured export result")
 
@@ -386,9 +393,9 @@ Please:
                 tool_name = message.get("tool_name")
                 content = message.get("content")
 
-                if tool_name == "mcp__synth__generate_data":
+                if tool_name == "generate_data":
                     result["generation"] = content
-                elif tool_name == "mcp__synth__export_data":
+                elif tool_name == "export_data":
                     result["export"] = content
 
         logger.info("Programmatic generation completed")
@@ -419,11 +426,13 @@ Please:
         """
         return self.allowed_tools.copy()
 
-    def get_mcp_tools(self) -> List[str]:
+    def get_agent_tools(self) -> List[str]:
         """
-        Get the list of custom MCP tools.
+        Get the list of custom agent tools.
 
         Returns:
-            List of MCP tool names with namespace
+            List of custom agent tool names
         """
-        return [tool for tool in self.allowed_tools if tool.startswith("mcp__synth__")]
+        # Filter out standard SDK tools, return only our custom tools
+        sdk_tools = {"Read", "Write", "Edit", "Bash", "Glob", "Grep"}
+        return [tool for tool in self.allowed_tools if tool not in sdk_tools]

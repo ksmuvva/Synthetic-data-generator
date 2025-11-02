@@ -1,8 +1,8 @@
 """
 Custom tools (skills) for Claude Agent SDK integration.
 
-These tools expose the synthetic data generator functionality as in-process MCP servers,
-strictly complying with the Claude Agent SDK framework.
+These tools expose the synthetic data generator functionality as pure agent tools,
+using the Claude Agent SDK framework.
 """
 
 import asyncio
@@ -11,7 +11,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 from pathlib import Path
 
-from claude_agent_sdk import tool, create_sdk_mcp_server
+from claude_agent_sdk import tool
 
 from ..analysis.requirement_parser import RequirementParser
 from ..analysis.ambiguity_detector import AmbiguityDetector
@@ -1316,28 +1316,21 @@ async def list_generation_modes_tool(args: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
-# Create SDK MCP server with all tools
-# This is the proper way to register tools with Claude Agent SDK
-synth_tools_server = create_sdk_mcp_server(
-    name="synth-data-tools",
-    version="2.0.0",
-    tools=[
-        # Original tools
-        analyze_requirements_tool,
-        detect_ambiguities_tool,
-        analyze_pattern_tool,
-        generate_data_tool,
-        export_data_tool,
-        list_formats_tool,
-        select_reasoning_strategy_tool,
-        list_reasoning_methods_tool,
-        # New enhanced tools
-        deep_analyze_pattern_tool,
-        generate_with_modes_tool,
-        validate_quality_tool,
-        list_generation_modes_tool,
-    ]
-)
-
-# Export the server for registration with ClaudeSDKClient
-__all__ = ["synth_tools_server"]
+# Export all tools for agent registration
+# These tools are registered directly with the Claude Agent SDK client
+__all__ = [
+    # Original tools
+    "analyze_requirements_tool",
+    "detect_ambiguities_tool",
+    "analyze_pattern_tool",
+    "generate_data_tool",
+    "export_data_tool",
+    "list_formats_tool",
+    "select_reasoning_strategy_tool",
+    "list_reasoning_methods_tool",
+    # Enhanced tools
+    "deep_analyze_pattern_tool",
+    "generate_with_modes_tool",
+    "validate_quality_tool",
+    "list_generation_modes_tool",
+]

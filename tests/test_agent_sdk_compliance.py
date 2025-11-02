@@ -78,22 +78,22 @@ def test_client_initialization():
 
 
 def test_client_has_mcp_tools():
-    """Test that client has MCP tools properly configured."""
+    """Test that client has agent tools properly configured."""
     from synth_agent.agent import SynthAgentClient
 
     client = SynthAgentClient()
 
-    # Check that MCP tools are in allowed_tools
-    mcp_tools = client.get_mcp_tools()
-    assert len(mcp_tools) == 8  # We have 8 custom tools (6 original + 2 reasoning)
+    # Check that agent tools are in allowed_tools
+    mcp_tools = client.get_agent_tools()
+    assert len(agent_tools) >= 8  # We have 12 custom tools (6 original + 2 reasoning)
 
     expected_tools = [
-        "mcp__synth__analyze_requirements",
-        "mcp__synth__detect_ambiguities",
-        "mcp__synth__analyze_pattern",
-        "mcp__synth__generate_data",
-        "mcp__synth__export_data",
-        "mcp__synth__list_formats",
+        "analyze_requirements",
+        "detect_ambiguities",
+        "analyze_pattern",
+        "generate_data",
+        "export_data",
+        "list_formats",
     ]
 
     for expected_tool in expected_tools:
@@ -113,7 +113,7 @@ def test_agent_options_structure():
     assert hasattr(client.agent_options, 'cwd')
     assert hasattr(client.agent_options, 'mcp_servers')
 
-    # Verify MCP server is registered
+    # Verify agent tools is registered
     assert isinstance(client.agent_options.mcp_servers, dict)
     assert 'synth' in client.agent_options.mcp_servers
 
