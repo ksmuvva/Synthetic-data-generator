@@ -5,5 +5,11 @@ Now fully NLP/Chat based!
 
 from synth_agent.cli.nlp_app import app
 
-if __name__ == "__main__":
+
+def main():
+    """Main entry point for the CLI."""
     app()
+
+
+if __name__ == "__main__":
+    main()

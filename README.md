@@ -3,374 +3,113 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An intelligent AI-powered CLI with **fully natural language interface** for generating high-quality synthetic datasets. Just chat with the AI - no commands to remember!
-
-## ✨ What's New - Version 2.0
-
-🚀 **Complete NLP Chat Interface** - The entire CLI is now conversational! Just run `synth-agent` and chat naturally.
-
-### Key Features
-- 💬 **Pure natural language** - No commands to memorize
-- 🤖 **AI-powered understanding** - Describes what you need in plain English
-- 📊 **8 output formats** - CSV, JSON, Excel, Parquet, XML, TXT, PDF, Word (DOCX)
-- 📄 **Document generation** - Create essays, articles, and reports in PDF/Word
-- 🧠 **Context memory** - Remembers your conversation
-- 🔧 **Smart defaults** - Learns your preferences
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.10 or higher
-- Anthropic API key ([Get one here](https://console.anthropic.com/))
-
-### Installation
+Generate realistic test data using natural language. Just describe what you need - no complex commands, no configuration files.
 
 ```bash
-# Clone the repository
+You: create 100 customer records with email and phone numbers
+AI: ✅ Generated customers.csv with 100 rows
+```
+
+## 🚀 Quick Start (60 seconds)
+
+**1. Clone and Install**
+```bash
 git clone https://github.com/ksmuvva/Synthetic-data-generator.git
 cd Synthetic-data-generator
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e .
 ```
 
-### Setup API Key
+**2. Add Your API Key**
 
-Create a `.env` file in the project directory:
-
+Create `.env` file:
 ```bash
-ANTHROPIC_API_KEY=your-api-key-here
+ANTHROPIC_API_KEY=your-key-here
 ```
+Get your API key at [console.anthropic.com](https://console.anthropic.com/)
 
-### Start Chatting!
-
+**3. Start Generating**
 ```bash
 synth-agent
 ```
 
-That's it! Just start chatting with the AI.
+That's it! Now just describe the data you need in plain English.
 
-## 💬 Usage Examples
+## 💬 What You Can Do
 
-### Generate Data
-
-```
-You: create 100 customer records with emails and phone numbers
-AI: ✅ Generated customers_20251031_143022.csv with 100 rows
-
-You: I need JSON data for API testing
-AI: ✅ Generated api_test_data_20251031_143125.json
-
-You: make an Excel file with 50 sales transactions
-AI: ✅ Generated sales_transactions_20251031_143210.xlsx with 50 rows
-```
-
-### Generate Documents
+Just type naturally - here are some examples:
 
 ```
-You: create a PDF document about machine learning
-AI: 📝 Generating document about machine learning in PDF format...
-    ✅ Generated machine_learning_20251031_143305.pdf
-
-You: create a Word document about India
-AI: 📝 Generating document about India in Word format...
-    ✅ Generated india_20251031_143410.docx
-
-You: create a PDF table with employee data
-AI: 📝 Generating 10 rows of employee data in PDF format...
-    ✅ Generated employee_data_20251031_143515.pdf (table format)
+"create 100 customer records with emails and phone numbers"
+"I need JSON data for API testing"
+"make an Excel file with 50 sales transactions"
+"generate employee data with salary between $40k-$150k"
+"create a PDF report about machine learning"
+"analyze my last file"
+"show my generated files"
 ```
 
-### Analyze Data
-
-```
-You: analyze my last file
-AI: 🔍 Analyzing customers_20251031_143022.csv...
-    [Shows detailed analysis with insights]
-
-You: show patterns in sales.json
-AI: [Provides pattern analysis and recommendations]
-```
-
-### Configure Settings
-
-```
-You: use JSON as default format
-AI: ✅ Default format set to JSON
-
-You: set default rows to 100
-AI: ✅ Default rows set to 100
-```
-
-### File Operations
-
-```
-You: show my files
-AI: [Displays table of all generated files]
-
-You: delete old_customers.csv
-AI: ✅ Deleted old_customers.csv
-```
+The AI understands what you mean and handles the details.
 
 ## 📊 Supported Formats
 
-| Format | Extension | Best For |
-|--------|-----------|----------|
-| **CSV** | `.csv` | Spreadsheets, simple tables, data analysis |
-| **JSON** | `.json` | APIs, web data, nested structures |
-| **Excel** | `.xlsx` | Business reports, formatted spreadsheets |
-| **Parquet** | `.parquet` | Big data, analytics pipelines, data warehouses |
-| **XML** | `.xml` | Legacy systems, configuration files |
-| **TXT** | `.txt` | Plain text, lists, notes |
-| **PDF** | `.pdf` | Professional documents, reports, essays |
-| **Word (DOCX)** | `.docx` | Editable documents, articles, letters |
+CSV, JSON, Excel, Parquet, XML, TXT, PDF, Word (DOCX)
 
-### 📄 Document Modes (PDF & Word)
+Just mention the format you want, or let the AI choose the best one for your use case.
 
-**Paragraph Mode (Default)** - Natural flowing text
-- Perfect for essays, articles, reports, biographies
-- Creates formatted paragraphs with proper flow
-- Example: "create a PDF document about artificial intelligence"
+## ✨ Why Use This?
 
-**Table Mode** - Structured data grid
-- Perfect for data records, spreadsheets, catalogs
-- Creates tables with headers and rows
-- Example: "create a PDF table with employee records"
-- Trigger words: "table", "tabular", "spreadsheet", "grid"
+- **No learning curve** - If you can describe it, it can generate it
+- **High-quality data** - Realistic names, emails, addresses, and more
+- **Complex scenarios** - Multi-table databases, correlations, constraints
+- **Multiple formats** - 8 output formats including PDF and Excel
+- **Smart AI** - Understands context, remembers your preferences
 
-## 🎯 Key Features
+## 💡 Tips
 
-### 🗣️ Natural Language Interface
-- **No commands to learn** - Just chat naturally
-- **Intent recognition** - AI understands what you want
-- **Multi-turn conversations** - Context-aware interactions
-- **Smart defaults** - Remembers your preferences
+**Be specific**: "create 100 customer records with name, email, phone" works better than "create data"
 
-### 📊 Intelligent Data Generation
-- **Semantic field detection** - Auto-generates emails, names, addresses, phone numbers
-- **Realistic data** - Uses AI to create meaningful, varied content
-- **Custom specifications** - Describe exactly what you need
-- **Flexible row counts** - From 1 to millions of records
+**Use context**: After generating a file, you can say "analyze it" or "export it as JSON"
 
-### 📄 Document Generation (NEW)
-- **Essay/article generation** - Creates real paragraph content, not data rows
-- **PDF reports** - Professional formatting with titles and metadata
-- **Word documents** - Fully editable .docx files
-- **Both modes** - Paragraph (essays) or Table (data grids)
-
-### 🧠 Context & Memory
-- **Conversation history** - Remembers what you've asked for
-- **Last file tracking** - "analyze it" refers to last generated file
-- **Preference learning** - Adapts to your default format and row count
-
-## 💡 Pro Tips
-
-### Be Specific
-```
-❌ "create data"
-✅ "create 100 customer records with name, email, phone, and address"
-```
-
-### Use Natural Language
-```
-✅ "I need 50 products"
-✅ "make an Excel file with sales data"
-✅ "generate a PDF about Python programming"
-✅ "create quiz questions for students"
-```
-
-### Leverage Context
-```
-You: create customer data
-AI: ✅ Generated customers.csv
-
-You: analyze it  # AI knows you mean customers.csv
-AI: 🔍 Analyzing customers.csv...
-```
-
-### Specify Format When Needed
-```
-You: create employee records in JSON format
-You: make a Word document about climate change
-You: generate a PDF table with inventory
-```
-
-## 🏗️ Architecture
-
-The tool is built with two modes:
-
-### 1. NLP Chat Mode (Default) - NEW ✨
-Pure conversational AI interface:
-- Intent classification via Claude API
-- Context-aware conversations
-- Direct data generation
-- File operations and analysis
-
-### 2. Agent SDK Mode (Advanced)
-Claude Agent SDK with custom MCP tools and skills:
-- **12 custom MCP tools** for data generation
-- **10 Claude Agent Skills** for enhanced capabilities
-- **12 advanced reasoning methods** for intelligent generation
-- **4 generation modes** for flexible output
-- Pattern analysis capabilities
-- Advanced hooks system
-- Thread-safe state management
-
-### 🎯 Claude Agent Skills
-
-The agent is enhanced with **10 specialized skills**:
-
-**Built-in Skills (4):**
-- **xlsx** - Excel spreadsheet operations
-- **pdf** - PDF document operations
-- **docx** - Word document operations
-- **pptx** - PowerPoint presentations
-
-**Custom Skills (6):**
-- **data-validation** - Advanced quality validation
-- **statistical-analysis** - Deep pattern recognition
-- **data-visualization** - Charts and visual reports
-- **schema-inference** - Automatic type detection
-- **privacy-checker** - PII detection & compliance
-- **relational-mapper** - Multi-table generation
-
-📖 **Learn more**: See [SKILLS.md](SKILLS.md) for complete documentation
-
-## 🔧 Development
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# With coverage
-pytest --cov=synth_agent
-
-# Specific test file
-pytest tests/test_nlp_app.py
-```
-
-### Code Quality
-
-```bash
-# Format code
-black src/
-
-# Lint
-ruff src/
-
-# Type checking
-mypy src/
-```
-
-## 📖 Full Documentation
-
-For comprehensive documentation including:
-- Detailed NLP chat examples
-- Format specifications
-- Document generation modes
-- Advanced usage patterns
-- API reference
-- **Claude Agent Skills** - [SKILLS.md](SKILLS.md)
-- Advanced features guide - [FEATURE_GUIDE.md](FEATURE_GUIDE.md)
-- Agent SDK guide - [docs/AGENT_SDK_GUIDE.md](docs/AGENT_SDK_GUIDE.md)
-
-**Key Documentation:**
-- [NLP_CHAT_README.md](NLP_CHAT_README.md) - Chat interface guide
-- [SKILLS.md](SKILLS.md) - **NEW:** Complete skills documentation
-- [FEATURE_GUIDE.md](FEATURE_GUIDE.md) - Advanced features
-- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Project overview
+**Add constraints**: "ages between 25-65", "unique emails", "salary correlates with experience"
 
 ## 🐛 Troubleshooting
 
-### API Key Not Found
+**"ANTHROPIC_API_KEY not found"**
+→ Create a `.env` file with your API key
 
-**Error**: `ANTHROPIC_API_KEY not found`
+**"ModuleNotFoundError"**
+→ Run `pip install -e .` in your virtual environment
 
-**Solution**: Create a `.env` file:
+**Need help?** Open an issue on [GitHub](https://github.com/ksmuvva/Synthetic-data-generator/issues)
+
+## 🔧 For Developers
+
 ```bash
-ANTHROPIC_API_KEY=your-api-key-here
+pytest                    # Run tests
+black src/ && ruff src/   # Format and lint
 ```
 
-### Import Errors
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-**Error**: `ModuleNotFoundError`
+## 📖 More Documentation
 
-**Solution**: Install dependencies:
-```bash
-pip install -e .
-```
-
-### PDF/Word Generation Issues
-
-**Error**: Issues generating PDF or Word documents
-
-**Solution**: Ensure libraries are installed:
-```bash
-pip install reportlab python-docx
-```
-
-## 🗺️ Roadmap
-
-### ✅ Completed
-- [x] Complete NLP chat interface
-- [x] 8 output formats (CSV, JSON, Excel, Parquet, XML, TXT, PDF, DOCX)
-- [x] Document generation with paragraph and table modes
-- [x] Intent classification and context memory
-- [x] File operations and analysis
-- [x] Smart format detection
-
-### 🚧 In Progress
-- [ ] Comprehensive test coverage for NLP features
-- [ ] Enhanced error handling and recovery
-- [ ] Performance optimizations
-
-### 📅 Future
-- [ ] Multi-language support
-- [ ] Custom templates for documents
-- [ ] Batch generation from files
-- [ ] Cloud storage integration
-- [ ] Web interface
-- [ ] API endpoints
+- **[SKILLS.md](SKILLS.md)** - Advanced agent skills and capabilities
+- **[FEATURE_GUIDE.md](FEATURE_GUIDE.md)** - Detailed feature documentation
+- **[USABILITY_TEST_REPORT.md](USABILITY_TEST_REPORT.md)** - Comprehensive testing results
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Technical architecture overview
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+Contributions welcome! Fork, create a feature branch, add tests, and open a PR.
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built with [Anthropic Claude](https://anthropic.com/) API
-- CLI framework: [Typer](https://typer.tiangolo.com/) and [Rich](https://rich.readthedocs.io/)
-- PDF generation: [ReportLab](https://www.reportlab.com/)
-- Word documents: [python-docx](https://python-docx.readthedocs.io/)
-- Data processing: [Pandas](https://pandas.pydata.org/)
-
-## 💬 Support
-
-- **Issues**: [GitHub Issues](https://github.com/ksmuvva/Synthetic-data-generator/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/ksmuvva/Synthetic-data-generator/discussions)
-- **Email**: Support via GitHub
+MIT License - see [LICENSE](LICENSE) file.
 
 ---
 
-**Made with ❤️ and 🤖 AI - No commands to remember, just chat!**
+⭐ **Like this project?** Star it on [GitHub](https://github.com/ksmuvva/Synthetic-data-generator)
 
-⭐ Star us on GitHub if you find this useful!
+💬 **Need help?** Open an [issue](https://github.com/ksmuvva/Synthetic-data-generator/issues)
