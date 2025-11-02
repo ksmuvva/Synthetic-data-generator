@@ -5,10 +5,6 @@ This test verifies that the agent can handle complex, multi-step, and ambiguous
 prompts similar to how humans would interact with the CLI.
 """
 
-import asyncio
-import json
-from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock
 import pytest
 import pandas as pd
 
