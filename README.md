@@ -12,93 +12,54 @@ AI: ✅ Generated customers.csv with 100 rows
 
 ## 🚀 Quick Start (60 seconds)
 
-**1. Clone and Install**
 ```bash
+# 1. Clone and install
 git clone https://github.com/ksmuvva/Synthetic-data-generator.git
 cd Synthetic-data-generator
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e .
-```
 
-**2. Add Your API Key**
+# 2. Add your API key (get it at console.anthropic.com)
+echo "ANTHROPIC_API_KEY=your-key-here" > .env
 
-Create `.env` file:
-```bash
-ANTHROPIC_API_KEY=your-key-here
-```
-Get your API key at [console.anthropic.com](https://console.anthropic.com/)
-
-**3. Start Generating**
-```bash
+# 3. Start generating!
 synth-agent
 ```
 
 That's it! Now just describe the data you need in plain English.
 
-## 💬 What You Can Do
-
-Just type naturally - here are some examples:
+## 💬 Example Prompts
 
 ```
 "create 100 customer records with emails and phone numbers"
 "I need JSON data for API testing"
 "make an Excel file with 50 sales transactions"
 "generate employee data with salary between $40k-$150k"
-"create a PDF report about machine learning"
 "analyze my last file"
-"show my generated files"
 ```
 
 The AI understands what you mean and handles the details.
 
-## 📊 Supported Formats
+## ✨ Features
 
-CSV, JSON, Excel, Parquet, XML, TXT, PDF, Word (DOCX)
-
-Just mention the format you want, or let the AI choose the best one for your use case.
-
-## ✨ Why Use This?
-
-- **No learning curve** - If you can describe it, it can generate it
-- **High-quality data** - Realistic names, emails, addresses, and more
-- **Complex scenarios** - Multi-table databases, correlations, constraints
-- **Multiple formats** - 8 output formats including PDF and Excel
-- **Smart AI** - Understands context, remembers your preferences
-
-## 💡 Tips
-
-**Be specific**: "create 100 customer records with name, email, phone" works better than "create data"
-
-**Use context**: After generating a file, you can say "analyze it" or "export it as JSON"
-
-**Add constraints**: "ages between 25-65", "unique emails", "salary correlates with experience"
+- **Natural language** - Describe data in plain English, no syntax to learn
+- **Smart reasoning** - 12 reasoning strategies (MCTS, Chain of Thought, ReAct, etc.)
+- **High-quality data** - Realistic names, emails, addresses, correlations
+- **8 formats** - CSV, JSON, Excel, Parquet, XML, TXT, PDF, Word
+- **Complex scenarios** - Multi-table databases, constraints, relationships
 
 ## 🐛 Troubleshooting
 
-**"ANTHROPIC_API_KEY not found"**
-→ Create a `.env` file with your API key
+| Problem | Solution |
+|---------|----------|
+| "ANTHROPIC_API_KEY not found" | Create a `.env` file with your API key |
+| "ModuleNotFoundError" | Run `pip install -e .` in your virtual environment |
+| Need help? | Open an [issue](https://github.com/ksmuvva/Synthetic-data-generator/issues) |
 
-**"ModuleNotFoundError"**
-→ Run `pip install -e .` in your virtual environment
+## 📖 Documentation
 
-**Need help?** Open an issue on [GitHub](https://github.com/ksmuvva/Synthetic-data-generator/issues)
-
-## 🔧 For Developers
-
-```bash
-pytest                    # Run tests
-black src/ && ruff src/   # Format and lint
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
-
-## 📖 More Documentation
-
-- **[SKILLS.md](SKILLS.md)** - Advanced agent skills and capabilities
-- **[FEATURE_GUIDE.md](FEATURE_GUIDE.md)** - Detailed feature documentation
-- **[USABILITY_TEST_REPORT.md](USABILITY_TEST_REPORT.md)** - Comprehensive testing results
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Technical architecture overview
+- **[CLAUDE_REASONING_TEST_REPORT.md](CLAUDE_REASONING_TEST_REPORT.md)** - Comprehensive testing results (29 tests, 100% pass rate)
 
 ## 🤝 Contributing
 
@@ -111,5 +72,3 @@ MIT License - see [LICENSE](LICENSE) file.
 ---
 
 ⭐ **Like this project?** Star it on [GitHub](https://github.com/ksmuvva/Synthetic-data-generator)
-
-💬 **Need help?** Open an [issue](https://github.com/ksmuvva/Synthetic-data-generator/issues)
