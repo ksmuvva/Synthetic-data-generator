@@ -118,9 +118,9 @@ class TestComplexHumanLikePrompts:
         client = SynthAgentClient(config=config)
 
         # Verify reasoning strategy selection is available
-        tools = client.get_mcp_tools()
-        assert "mcp__synth__select_reasoning_strategy" in tools
-        assert "mcp__synth__list_reasoning_methods" in tools
+        tools = client.get_agent_tools()
+        assert "select_reasoning_strategy" in tools
+        assert "list_reasoning_methods" in tools
 
     @pytest.mark.asyncio
     async def test_pattern_based_generation_prompt(self):
@@ -195,9 +195,9 @@ class TestComplexHumanLikePrompts:
         client = SynthAgentClient(config=config)
 
         # Verify format listing is available
-        tools = client.get_mcp_tools()
-        assert "mcp__synth__list_formats" in tools
-        assert "mcp__synth__export_data" in tools
+        tools = client.get_agent_tools()
+        assert "list_formats" in tools
+        assert "export_data" in tools
 
     @pytest.mark.asyncio
     async def test_complex_constraint_prompt(self):
@@ -245,10 +245,10 @@ class TestComplexHumanLikePrompts:
         client = SynthAgentClient(config=config)
 
         # Verify multiple tools are available
-        tools = client.get_mcp_tools()
-        assert "mcp__synth__generate_data" in tools
-        assert "mcp__synth__analyze_pattern" in tools
-        assert "mcp__synth__export_data" in tools
+        tools = client.get_agent_tools()
+        assert "generate_data" in tools
+        assert "analyze_pattern" in tools
+        assert "export_data" in tools
 
     @pytest.mark.asyncio
     async def test_follow_up_question_prompt(self):

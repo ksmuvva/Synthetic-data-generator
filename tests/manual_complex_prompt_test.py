@@ -219,13 +219,13 @@ class ComplexPromptTester:
             client = SynthAgentClient(config=self.config)
 
             # Verify client has expected tools
-            available_tools = client.get_mcp_tools()
-            print(f"\nAvailable MCP tools: {len(available_tools)}")
+            available_tools = client.get_agent_tools()
+            print(f"\nAvailable agent tools: {len(available_tools)}")
 
             expected_tools = test_case.get("expected_tools", [])
             missing_tools = []
             for tool in expected_tools:
-                tool_name = f"mcp__synth__{tool}"
+                tool_name = f"{tool}"
                 if tool_name not in available_tools:
                     missing_tools.append(tool)
 

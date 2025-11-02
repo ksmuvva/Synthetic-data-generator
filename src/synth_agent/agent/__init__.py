@@ -1,8 +1,8 @@
 """
 Claude Agent SDK integration for Synthetic Data Generator.
 
-This module provides Claude Agent SDK tools (skills) for synthetic data generation,
-strictly complying with the Claude Agent SDK framework.
+This module provides pure Claude Agent SDK tools (skills) for synthetic data generation,
+using the Claude Agent SDK framework.
 """
 
 from .tools import (
@@ -12,22 +12,31 @@ from .tools import (
     generate_data_tool,
     export_data_tool,
     list_formats_tool,
-    synth_tools_server,
+    select_reasoning_strategy_tool,
+    list_reasoning_methods_tool,
+    deep_analyze_pattern_tool,
+    generate_with_modes_tool,
+    validate_quality_tool,
+    list_generation_modes_tool,
 )
 from .client import SynthAgentClient
 from .hooks import create_hooks, create_validation_hook, create_logging_hook, create_metrics_hook
 from .state import ToolStateManager, get_state_manager, reset_state_manager
 
 __all__ = [
-    # Individual tools
+    # Agent tools
     "analyze_requirements_tool",
     "detect_ambiguities_tool",
     "analyze_pattern_tool",
     "generate_data_tool",
     "export_data_tool",
     "list_formats_tool",
-    # SDK MCP server (main export for SDK registration)
-    "synth_tools_server",
+    "select_reasoning_strategy_tool",
+    "list_reasoning_methods_tool",
+    "deep_analyze_pattern_tool",
+    "generate_with_modes_tool",
+    "validate_quality_tool",
+    "list_generation_modes_tool",
     # Client
     "SynthAgentClient",
     # Hooks
