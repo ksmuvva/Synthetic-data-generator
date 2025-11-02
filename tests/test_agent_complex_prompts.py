@@ -12,20 +12,6 @@ from synth_agent.agent import SynthAgentClient, get_state_manager, reset_state_m
 from synth_agent.core.config import Config
 
 
-@pytest.fixture
-def mock_agent_response():
-    """Mock agent response with streaming."""
-    class MockStreamingResponse:
-        def __init__(self, content):
-            self.content = content
-
-        async def __aiter__(self):
-            for chunk in self.content:
-                yield {"type": "text", "text": chunk}
-
-    return MockStreamingResponse
-
-
 class TestComplexHumanLikePrompts:
     """Test complex, human-like prompts that test agent understanding."""
 
