@@ -34,13 +34,14 @@ console = Console()
 
 class ConversationContext:
     """Maintains conversation history and context."""
-    
+
     def __init__(self):
         self.history: List[Dict[str, str]] = []
         self.last_generated_file: Optional[str] = None
         self.user_preferences: Dict[str, Any] = {
             "default_format": "csv",
-            "default_rows": 10
+            "default_rows": 10,
+            "template_file": None  # Path to template file for pattern-based generation
         }
     
     def add_message(self, role: str, content: str):
@@ -78,8 +79,9 @@ No commands to remember - just tell me what you need in plain English.
 ## What can I help you with?
 
 💾 **Generate Data**: "create 100 customer records", "make JSON for API testing"
-📊 **Analyze Data**: "analyze customers.csv", "show me patterns in sales data"  
+📊 **Analyze Data**: "analyze customers.csv", "show me patterns in sales data"
 ⚙️  **Configure**: "change output format to JSON", "set default rows to 50"
+📋 **Template Files**: "use customers.csv as template", "set template to data.json"
 📁 **File Operations**: "list my data files", "delete old_data.csv"
 💡 **Help & Examples**: "show me examples", "how do I generate time series?"
 🔍 **Ask Anything**: Questions about formats, data types, best practices
@@ -133,9 +135,9 @@ def print_examples():
 
 
 async def classify_intent(client, user_input: str, context: ConversationContext) -> Dict[str, Any]:
-    """Use Claude to classify user intent and extract parameters."""
-    
-    system_prompt = """You are an AI assistant for a synthetic data generation tool. 
+    """Use Claude to classify user intent and extract parameters with intelligent reasoning."""
+
+    system_prompt = """You are an AI assistant for a synthetic data generation tool with advanced reasoning capabilities.
 Classify user requests into these intents:
 
 1. GENERATE - User wants to create synthetic data
@@ -150,55 +152,126 @@ Extract parameters based on intent:
 - For GENERATE: data_description, rows, format (csv/json/excel/parquet/xml/txt/pdf/docx/word), fields, doc_style (paragraph/table - default paragraph)
 - For ANALYZE: filename, analysis_type
 - For CONFIGURE: setting_name, value
+  - Template-related: "use X as template", "set template to Y" → setting_name="template_file", value="<file_path>"
+  - Format: "use JSON format", "default to CSV" → setting_name="format", value="json/csv/etc"
+  - Rows: "default 100 rows", "set rows to 50" → setting_name="rows", value=<number>
 - For FILE_OPS: operation (list/delete/rename), filename
 
-IMPORTANT FORMAT DETECTION:
-- "word document", "Word doc", "docx" → format="docx"
-- "PDF document", "PDF" → format="pdf"
-- "Excel" → format="excel"
+CRITICAL FORMAT DETECTION RULES - Apply intelligent reasoning:
+1. **Explicit mentions**: "JSON", "CSV", "Excel", "PDF", "Word", "XML", "Parquet" → use that format
+2. **Context clues**:
+   - "API", "REST", "endpoint", "nested" → format="json"
+   - "spreadsheet", "rows and columns", "table" → format="excel" or "csv"
+   - "document", "paragraph", "essay", "article", "report" → format="pdf" or "docx"
+   - "big data", "analytics", "data lake" → format="parquet"
+   - "list", "simple text" → format="txt"
+3. **Document style detection**:
+   - For PDF/DOCX: Use doc_style="table" if user says "table", "tabular", "spreadsheet", "grid"
+   - For PDF/DOCX: Use doc_style="paragraph" if user says "document", "essay", "article", "report", "paragraph"
+   - Default for PDF/DOCX is doc_style="paragraph"
 
-For DOCUMENT formats (PDF, DOCX, Word): Use doc_style="table" ONLY if user explicitly mentions "table", "tabular", "spreadsheet", or "grid"
-Otherwise default to doc_style="paragraph" for natural document format with essays/articles.
+4. **Template file context**: If a template file is mentioned or previously set, infer the format from that file's extension
 
-Return JSON with: {"intent": "...", "params": {...}, "confidence": 0.0-1.0}"""
+REASONING APPROACH:
+- Think step-by-step about what the user is asking
+- Consider the data type and use case
+- Make intelligent inferences about the best format
+- Don't default to CSV unless it truly makes sense
+- Consider the user's domain (API development vs reporting vs data science)
+
+Return JSON with: {"intent": "...", "params": {...}, "confidence": 0.0-1.0, "reasoning": "brief explanation of format choice"}"""
 
     context_info = context.get_context_summary()
-    
+
+    # Add template file context if available
+    template_context = ""
+    if context.user_preferences.get("template_file"):
+        template_file = context.user_preferences["template_file"]
+        template_format = _detect_format_from_file(template_file)
+        template_context = f"\n\nTemplate file is set to: {template_file} (format: {template_format})"
+
     prompt = f"""Previous context:
-{context_info}
+{context_info}{template_context}
 
 Current request: "{user_input}"
 
-Classify the intent and extract parameters."""
+Think carefully about the user's intent and what format would best serve their needs.
+Classify the intent and extract parameters using reasoning."""
 
     try:
         response = client.messages.create(
             model=os.getenv("SYNTH_AGENT_LLM_MODEL", "claude-sonnet-4-20250514"),
-            max_tokens=1000,
+            max_tokens=1500,
             system=system_prompt,
             messages=[{"role": "user", "content": prompt}]
         )
-        
+
         content = response.content[0].text
-        
+
         # Extract JSON from response
         json_match = re.search(r'\{.*\}', content, re.DOTALL)
         if json_match:
-            return json.loads(json_match.group())
+            result = json.loads(json_match.group())
+
+            # Show reasoning if present (for transparency)
+            if result.get("reasoning") and result.get("intent") == "GENERATE":
+                console.print(f"[dim]💡 Reasoning: {result['reasoning']}[/dim]")
+
+            return result
         else:
-            # Fallback parsing
-            return {
-                "intent": "GENERATE",
-                "params": {"data_description": user_input, "rows": 10, "format": "csv"},
-                "confidence": 0.5
-            }
+            # Fallback: Try to intelligently infer format from keywords
+            return _fallback_intent_classification(user_input, context)
+
     except Exception as e:
         console.print(f"[yellow]⚠️  Using fallback intent classification: {e}[/yellow]")
-        return {
-            "intent": "GENERATE",
-            "params": {"data_description": user_input, "rows": 10, "format": "csv"},
-            "confidence": 0.3
-        }
+        return _fallback_intent_classification(user_input, context)
+
+
+def _fallback_intent_classification(user_input: str, context: ConversationContext) -> Dict[str, Any]:
+    """Fallback intent classification using keyword matching and reasoning."""
+    user_lower = user_input.lower()
+
+    # Detect format from keywords
+    format_type = "csv"  # default
+
+    if any(word in user_lower for word in ["json", "api", "rest", "endpoint", "nested"]):
+        format_type = "json"
+    elif any(word in user_lower for word in ["excel", "xlsx", "spreadsheet"]):
+        format_type = "excel"
+    elif any(word in user_lower for word in ["pdf", "document", "paragraph", "essay", "article", "report"]) and "table" not in user_lower:
+        format_type = "pdf"
+    elif any(word in user_lower for word in ["word", "docx", "doc"]):
+        format_type = "docx"
+    elif any(word in user_lower for word in ["parquet", "big data", "analytics"]):
+        format_type = "parquet"
+    elif any(word in user_lower for word in ["xml", "soap", "web service"]):
+        format_type = "xml"
+    elif "text" in user_lower or "txt" in user_lower:
+        format_type = "txt"
+
+    # If template file is set, use its format
+    if context.user_preferences.get("template_file"):
+        detected = _detect_format_from_file(context.user_preferences["template_file"])
+        if detected:
+            format_type = detected
+
+    # Extract row count
+    rows = 10
+    import re as regex
+    row_match = regex.search(r'(\d+)\s*(?:rows?|records?|items?|entries)', user_lower)
+    if row_match:
+        rows = int(row_match.group(1))
+
+    return {
+        "intent": "GENERATE",
+        "params": {
+            "data_description": user_input,
+            "rows": rows,
+            "format": format_type
+        },
+        "confidence": 0.6,
+        "reasoning": f"Fallback classification detected {format_type.upper()} format from keywords"
+    }
 
 
 async def handle_generate(client, params: Dict[str, Any], context: ConversationContext) -> str:
@@ -207,7 +280,27 @@ async def handle_generate(client, params: Dict[str, Any], context: ConversationC
     rows = params.get("rows", context.user_preferences.get("default_rows", 10))
     format_type = params.get("format", context.user_preferences.get("default_format", "csv"))
     fields = params.get("fields", [])
-    
+
+    # Check if template file is set and should be used
+    template_file = context.user_preferences.get("template_file")
+    template_content = None
+
+    if template_file and Path(template_file).exists():
+        try:
+            # Read template file to extract patterns
+            console.print(f"[cyan]📋 Using template: {template_file}[/cyan]")
+            template_content = _extract_template_content(template_file)
+
+            # Override format based on template if not explicitly specified in params
+            if "format" not in params and template_file:
+                detected_format = _detect_format_from_file(template_file)
+                if detected_format:
+                    format_type = detected_format
+                    console.print(f"[dim]Using template format: {format_type.upper()}[/dim]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Could not read template file: {e}[/yellow]")
+            console.print(f"[dim]Continuing with standard generation...[/dim]")
+
     # Unified doc_style parameter for all document formats (PDF, DOCX, Word)
     doc_style = params.get("doc_style", params.get("pdf_style", "paragraph"))
     
@@ -215,11 +308,21 @@ async def handle_generate(client, params: Dict[str, Any], context: ConversationC
     if format_type.lower() in ["word", "doc"]:
         format_type = "docx"
     
+    # Add template context if available
+    template_instruction = ""
+    if template_content:
+        template_instruction = f"""
+
+TEMPLATE/PATTERN TO FOLLOW:
+{template_content}
+
+IMPORTANT: Analyze the template above and generate data that matches its structure, style, and patterns closely."""
+
     # Special handling for document formats (PDF, DOCX) in paragraph mode
     if format_type in ["pdf", "docx"] and doc_style == "paragraph":
         format_name = "PDF" if format_type == "pdf" else "Word"
         console.print(f"\n[cyan]📝 Generating document about {description} in {format_name} format...[/cyan]")
-        
+
         # Generate actual paragraph content, not CSV rows
         generation_prompt = f"""Write a comprehensive document about: {description}
 
@@ -229,11 +332,12 @@ Create well-structured paragraph content with:
 - Professional writing style
 - Proper flow and transitions
 - Conclusion if appropriate
+{template_instruction}
 
 Write 3-5 paragraphs of high-quality content. Do NOT create CSV, tables, or lists. Write flowing paragraphs like an article or essay."""
     else:
         console.print(f"\n[cyan]📝 Generating {rows} rows of {description} in {format_type.upper()} format...[/cyan]")
-        
+
         # Build generation prompt for structured data
         fields_text = f"\nFields to include: {', '.join(fields)}" if fields else ""
         generation_prompt = f"""Generate synthetic {description} data with {rows} rows.{fields_text}
@@ -248,6 +352,7 @@ Requirements:
 {"- Output as valid JSON array" if format_type == "json" else ""}
 {"- Output as plain text, one item per line" if format_type == "txt" else ""}
 {"- Output as valid XML document" if format_type == "xml" else ""}
+{template_instruction}
 
 Generate the data now:"""
 
@@ -593,7 +698,7 @@ def handle_configure(params: Dict[str, Any], context: ConversationContext) -> st
     """Handle configuration changes."""
     setting = params.get("setting_name", "")
     value = params.get("value")
-    
+
     if "format" in setting.lower():
         if value in ["csv", "json", "excel", "parquet", "xml", "txt"]:
             context.user_preferences["default_format"] = value
@@ -602,7 +707,7 @@ def handle_configure(params: Dict[str, Any], context: ConversationContext) -> st
         else:
             console.print(f"\n[red]❌ Invalid format: {value}[/red]")
             return "Invalid format"
-    
+
     elif "rows" in setting.lower():
         try:
             rows = int(value)
@@ -612,10 +717,116 @@ def handle_configure(params: Dict[str, Any], context: ConversationContext) -> st
         except:
             console.print(f"\n[red]❌ Invalid number: {value}[/red]")
             return "Invalid number"
-    
+
+    elif "template" in setting.lower() or "pattern" in setting.lower():
+        # Handle template file setting
+        file_path = str(value).strip().strip('"').strip("'")
+
+        # Check if file exists
+        if Path(file_path).exists():
+            context.user_preferences["template_file"] = file_path
+
+            # Detect format from file extension
+            detected_format = _detect_format_from_file(file_path)
+            if detected_format:
+                context.user_preferences["default_format"] = detected_format
+                console.print(f"\n[green]✅ Template file set to: {file_path}[/green]")
+                console.print(f"[cyan]📝 Auto-detected format: {detected_format.upper()}[/cyan]")
+                return f"Updated template file to {file_path} (format: {detected_format})"
+            else:
+                console.print(f"\n[green]✅ Template file set to: {file_path}[/green]")
+                console.print(f"[yellow]⚠️  Could not auto-detect format. Please set format manually if needed.[/yellow]")
+                return f"Updated template file to {file_path}"
+        else:
+            console.print(f"\n[red]❌ File not found: {file_path}[/red]")
+            console.print(f"[dim]Please check the path and try again.[/dim]")
+            return f"File not found: {file_path}"
+
     else:
         console.print(f"\n[yellow]⚠️  Unknown setting: {setting}[/yellow]")
+        console.print(f"[dim]Available settings: format, rows, template_file[/dim]")
         return f"Unknown setting: {setting}"
+
+
+def _detect_format_from_file(file_path: str) -> Optional[str]:
+    """Detect output format from template file extension."""
+    ext = Path(file_path).suffix.lower()
+
+    format_map = {
+        ".csv": "csv",
+        ".json": "json",
+        ".xlsx": "excel",
+        ".xls": "excel",
+        ".parquet": "parquet",
+        ".xml": "xml",
+        ".txt": "txt",
+        ".pdf": "pdf",
+        ".docx": "docx",
+        ".doc": "docx"
+    }
+
+    return format_map.get(ext)
+
+
+def _extract_template_content(file_path: str) -> str:
+    """Extract content from template file to understand patterns."""
+    ext = Path(file_path).suffix.lower()
+
+    try:
+        if ext == ".csv":
+            with open(file_path, 'r', encoding='utf-8') as f:
+                # Read first few lines to get structure
+                lines = [f.readline() for _ in range(min(5, sum(1 for _ in f) + 1))]
+                return "".join(lines)
+
+        elif ext == ".json":
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                # Limit content size
+                return content[:2000] if len(content) > 2000 else content
+
+        elif ext in [".xlsx", ".xls"]:
+            import pandas as pd
+            df = pd.read_excel(file_path, nrows=5)
+            return df.to_string()
+
+        elif ext == ".txt":
+            with open(file_path, 'r', encoding='utf-8') as f:
+                # Read first 2000 characters
+                return f.read(2000)
+
+        elif ext == ".xml":
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read(2000)
+
+        elif ext == ".pdf":
+            # For PDF, extract text from first page
+            try:
+                from PyPDF2 import PdfReader
+                reader = PdfReader(file_path)
+                if len(reader.pages) > 0:
+                    text = reader.pages[0].extract_text()
+                    return text[:2000] if len(text) > 2000 else text
+            except:
+                return "PDF content (could not extract text)"
+
+        elif ext in [".docx", ".doc"]:
+            try:
+                from docx import Document
+                doc = Document(file_path)
+                # Extract first few paragraphs
+                paragraphs = [p.text for p in doc.paragraphs[:5]]
+                return "\n".join(paragraphs)
+            except:
+                return "Word document content (could not extract text)"
+
+        else:
+            # Generic text extraction
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return f.read(2000)
+
+    except Exception as e:
+        return f"Could not extract template content: {str(e)}"
 
 
 def handle_file_ops(params: Dict[str, Any], context: ConversationContext) -> str:
@@ -699,6 +910,14 @@ def handle_help() -> str:
 **Settings:**
 - "use JSON by default" - Change default format
 - "make default 100 rows" - Change default row count
+- "set template to customers.csv" - Use a file as pattern/template
+- "use data.json as template" - Pattern-based generation
+
+**Template Files:**
+The system can use existing files as templates to match structure and patterns:
+- Automatically detects format from template file extension
+- Extracts patterns from CSV, JSON, Excel, PDF, Word, XML, and more
+- Generates new data matching the template's structure and style
 
 **File Management:**
 - "show my files" - List all data files
