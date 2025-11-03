@@ -28,6 +28,7 @@ dependencies = [
     "typer>=0.12.0",
     "rich>=13.7.0",
     "prompt-toolkit>=3.0.43",
+    "streamlit>=1.31.0",
 
     # LLM Integration
     "openai>=1.12.0",
@@ -86,6 +87,7 @@ dev = [
 
 [project.scripts]
 synth-agent = "synth_agent.__main__:main"
+synth-agent-web = "streamlit run streamlit_app.py"
 
 [project.urls]
 Homepage = "https://github.com/yourusername/synthetic-data-generator"
