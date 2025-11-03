@@ -208,6 +208,7 @@ __marimo__/
 
 # Generated data files from synthetic data generator
 # These are test outputs and should not be committed
+output/
 *.csv
 *.json
 *.xlsx
@@ -220,3 +221,6 @@ __marimo__/
 !tests/**/*.csv
 !tests/**/*.json
 !tests/**/*.xlsx
+
+# Streamlit cache
+.streamlit/

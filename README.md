@@ -29,6 +29,23 @@ synth-agent
 
 That's it! Now just describe the data you need in plain English.
 
+## 🌐 Web Interface (Streamlit)
+
+Prefer a visual interface? Launch the web app:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The web interface provides:
+- 📝 Interactive prompt input with examples
+- 📁 File upload for pattern analysis (CSV, JSON, Excel, PDF, etc.)
+- ⚙️ Visual configuration controls
+- 📊 Live data preview with search and filtering
+- 💾 One-click export to multiple formats
+
+See [STREAMLIT_README.md](STREAMLIT_README.md) for detailed documentation.
+
 ## 💬 Example Prompts
 
 ```
