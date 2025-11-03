@@ -26,7 +26,7 @@ from synth_agent.analysis.pattern_analyzer import PatternAnalyzer
 from synth_agent.analysis.requirement_parser import RequirementParser
 from synth_agent.formats.manager import FormatManager
 from synth_agent.llm.manager import LLMManager
-from synth_agent.llm.providers.anthropic import AnthropicProvider
+from synth_agent.llm.anthropic_provider import AnthropicProvider
 from synth_agent.utils.file_validator import FileValidator
 from synth_agent.validation.quality import QualityValidator
 
@@ -90,13 +90,26 @@ def initialize_components():
         config_manager = ConfigManager()
         config = config_manager.get_config()
 
-        # Initialize LLM provider
-        llm_provider = AnthropicProvider(config=config.llm)
+        # Get API keys from environment
+        from synth_agent.core.config import get_api_keys
+        api_keys = get_api_keys()
+
+        if not api_keys.anthropic_api_key:
+            raise ValueError("ANTHROPIC_API_KEY not found in environment")
+
+        # Initialize LLM provider with API key
+        llm_provider = AnthropicProvider(
+            api_key=api_keys.anthropic_api_key,
+            model=config.llm.model,
+            temperature=config.llm.temperature,
+            max_tokens=config.llm.max_tokens,
+            timeout=config.llm.timeout
+        )
         llm_manager = LLMManager(provider=llm_provider, config=config.llm)
 
         # Initialize other components
         requirement_parser = RequirementParser(llm_manager=llm_manager)
-        pattern_analyzer = PatternAnalyzer(llm_manager=llm_manager)
+        pattern_analyzer = PatternAnalyzer(llm_manager=llm_manager, config=config)
         generation_engine = DataGenerationEngine(config=config.generation)
         format_manager = FormatManager()
         quality_validator = QualityValidator()

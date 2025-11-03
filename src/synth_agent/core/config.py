@@ -306,3 +306,24 @@ def get_api_keys() -> APIKeys:
         APIKeys instance
     """
     return APIKeys()
+
+
+class ConfigManager:
+    """Configuration manager wrapper for compatibility."""
+
+    def __init__(self, config_path: Optional[Path] = None, **overrides: Any):
+        """Initialize configuration manager.
+
+        Args:
+            config_path: Optional path to config file
+            **overrides: Configuration overrides
+        """
+        self._config = get_config(config_path, **overrides)
+
+    def get_config(self) -> Config:
+        """Get configuration instance.
+
+        Returns:
+            Config instance
+        """
+        return self._config
