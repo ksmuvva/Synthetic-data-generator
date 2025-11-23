@@ -85,6 +85,12 @@ dev = [
     "pre-commit>=3.6.0",
 ]
 
+e2e = [
+    "playwright>=1.40.0",
+    "behave>=1.2.6",
+    "pytest-playwright>=0.4.3",
+]
+
 [project.scripts]
 synth-agent = "synth_agent.__main__:main"
 synth-agent-web = "streamlit run streamlit_app.py"

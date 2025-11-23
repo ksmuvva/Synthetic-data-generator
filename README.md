@@ -74,6 +74,52 @@ The AI understands what you mean and handles the details.
 | "ModuleNotFoundError" | Run `pip install -e .` in your virtual environment |
 | Need help? | Open an [issue](https://github.com/ksmuvva/Synthetic-data-generator/issues) |
 
+## 🧪 End-to-End Testing
+
+This project includes a complete Playwright + Behave BDD testing framework to prevent common E2E testing issues.
+
+### Quick Start with E2E Tests
+
+```bash
+# Install E2E testing dependencies
+pip install playwright behave pytest-playwright
+
+# Install Playwright browsers
+playwright install chromium
+
+# Run all E2E tests
+behave features/
+
+# Run specific test tags
+behave --tags=@demo
+behave --tags=@smoke
+```
+
+### Framework Features
+
+✅ **Proper File Structure** - `environment.py` in correct location (`features/`, not `steps/`)
+✅ **Working Hooks** - `context.page` created automatically in `before_scenario()`
+✅ **BDD Best Practices** - Gherkin scenarios with reusable step definitions
+✅ **Example Tests** - Working demos and real-world examples included
+
+### Documentation
+
+- **[BEHAVE_TROUBLESHOOTING_GUIDE.md](BEHAVE_TROUBLESHOOTING_GUIDE.md)** - Fix common Behave issues
+- **[PLAYWRIGHT_TO_BDD_CONVERSION_GUIDE.md](PLAYWRIGHT_TO_BDD_CONVERSION_GUIDE.md)** - Convert recordings to BDD
+- **[examples/bdd-conversion/](examples/bdd-conversion/)** - Complete working examples
+
+### Test Structure
+
+```
+features/
+├── environment.py                    ← Behave hooks (MUST be here!)
+├── steps/
+│   ├── demo_local_steps.py          ← Framework verification tests
+│   └── herokuapp_test_steps.py      ← Example test steps
+├── demo_local.feature               ← Local demo tests
+└── herokuapp_test-dample_2025-11-23.feature  ← External site tests
+```
+
 ## 📖 Documentation
 
 - **[CLAUDE_REASONING_TEST_REPORT.md](CLAUDE_REASONING_TEST_REPORT.md)** - Comprehensive testing results (29 tests, 100% pass rate)
